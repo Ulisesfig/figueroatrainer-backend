@@ -85,7 +85,7 @@ NODE_ENV=production
 JWT_SECRET=cambia_esto_por_una_clave_super_segura_unica_123456789
 COOKIE_SECURE=true
 PORT=3000
-CORS_ORIGINS=https://tu-frontend.vercel.app
+CORS_ORIGINS=https://tu-frontend.netlify.app,https://tu-frontend.vercel.app
 ```
 
 **Importante:**
@@ -212,9 +212,9 @@ fetch('https://tu-backend.up.railway.app/api/...')
 
 1. Ve a tu proyecto Railway
 2. Click en el servicio backend → Variables
-3. Actualiza `CORS_ORIGINS` con la URL de tu frontend:
+3. Actualiza `CORS_ORIGINS` con la URL de tu frontend (puedes listar varias separadas por coma). Si tu frontend está en Netlify y usas cookies HTTPOnly, necesitas SameSite=None;Secure (ya configurado en producción) y el dominio exacto de Netlify:
 ```
-CORS_ORIGINS=https://tu-frontend.vercel.app,https://otro-dominio.com
+CORS_ORIGINS=https://tu-frontend.netlify.app,https://tu-frontend.vercel.app
 ```
 
 4. Railway hará redeploy automáticamente
@@ -265,7 +265,11 @@ En Railway puedes ver:
 
 ### Error: CORS
 - Actualiza `CORS_ORIGINS` con la URL correcta del frontend
-- Incluye tanto http como https si es necesario
+- Incluye tanto http como https si es necesario (solo para desarrollo). En producción, usa https.
+- Para que el login funcione con cookies entre dominios (Railway + Netlify), asegúrate de que:
+   - `NODE_ENV=production`
+   - Cookies de auth usan `SameSite=None; Secure` (ya lo hace el backend en producción)
+   - El dominio de Netlify esté en `CORS_ORIGINS`
 
 ### Ver logs:
 ```bash

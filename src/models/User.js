@@ -58,9 +58,13 @@ const User = {
     }
   },
 
-  // Buscar usuario por ID
+  // Buscar usuario por ID (sin password) - extendido para admin/profile
   findById: async (id) => {
-    const text = 'SELECT id, name, surname, phone, email, created_at, updated_at FROM users WHERE id = $1';
+    const text = `
+      SELECT id, name, surname, phone, email, username, document_type, role, created_at, updated_at
+      FROM users 
+      WHERE id = $1
+    `;
     const values = [id];
     
     try {
@@ -149,6 +153,74 @@ const User = {
     const values = [term, limit];
     const result = await query(text, values);
     return result.rows;
+  },
+
+  // Actualización arbitraria de campos permitidos para admin
+  updateAdmin: async (id, data) => {
+    const allowed = ['name', 'surname', 'phone', 'email', 'username', 'document_type'];
+    const entries = Object.entries(data).filter(([k, v]) => allowed.includes(k));
+    if (entries.length === 0) {
+      return await User.findById(id);
+    }
+
+    // Validaciones simples
+    const payload = Object.fromEntries(entries);
+    if (payload.document_type) {
+      const dt = String(payload.document_type).toLowerCase();
+      if (!['dni', 'pasaporte'].includes(dt)) {
+        const err = new Error('Tipo de documento inválido');
+        err.code = 'VALIDATION';
+        err.field = 'document_type';
+        throw err;
+      }
+      payload.document_type = dt;
+      if (dt === 'dni' && payload.username && !/^\d+$/.test(String(payload.username))) {
+        const err = new Error('El DNI debe contener solo números');
+        err.code = 'VALIDATION';
+        err.field = 'username';
+        throw err;
+      }
+      if (dt === 'pasaporte' && payload.username) {
+        if (!/^[A-Za-z0-9]+$/.test(String(payload.username))) {
+          const err = new Error('El Pasaporte debe contener solo letras y números');
+          err.code = 'VALIDATION';
+          err.field = 'username';
+          throw err;
+        }
+        payload.username = String(payload.username).toUpperCase();
+      }
+    }
+
+    const setClauses = entries.map(([key], idx) => `${key} = $${idx + 1}`);
+    const values = entries.map(([_, val]) => val);
+    values.push(id);
+
+    const text = `
+      UPDATE users 
+      SET ${setClauses.join(', ')}
+      WHERE id = $${entries.length + 1}
+      RETURNING id, name, surname, phone, email, username, document_type, role, created_at, updated_at
+    `;
+    const result = await query(text, values);
+    return result.rows[0];
+  },
+
+  // Cambiar rol de usuario
+  setRole: async (id, role) => {
+    const r = String(role).toLowerCase();
+    if (!['user', 'admin'].includes(r)) {
+      const err = new Error('Rol inválido');
+      err.code = 'VALIDATION';
+      err.field = 'role';
+      throw err;
+    }
+    const text = `
+      UPDATE users SET role = $1 WHERE id = $2 
+      RETURNING id, name, surname, phone, email, username, document_type, role, created_at, updated_at
+    `;
+    const values = [r, id];
+    const result = await query(text, values);
+    return result.rows[0];
   }
 };
 

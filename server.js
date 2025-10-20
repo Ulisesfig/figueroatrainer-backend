@@ -21,6 +21,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const contactRoutes = require('./src/routes/contactRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const planRoutes = require('./src/routes/planRoutes');
 
 // Importar middleware
 const { requireAuth } = require('./src/middleware/auth');
@@ -78,6 +79,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/plans', planRoutes);
 
 // Proteger dashboard (solo usuarios logueados)
 app.get('/pages/dashboard.html', requireAuth, (req, res) => {

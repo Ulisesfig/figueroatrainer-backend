@@ -158,7 +158,7 @@ const authController = {
         });
       }
 
-      // Generar JWT
+  // Generar JWT
       const token = jwt.sign(
         { 
           id: user.id,
@@ -183,6 +183,13 @@ const authController = {
       };
 
       res.cookie('token', token, cookieOptions);
+
+      // Actualizar last_login
+      try {
+        await require('../config/database').query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+      } catch (e) {
+        console.warn('No se pudo actualizar last_login:', e.message);
+      }
 
       res.json({ 
         success: true, 

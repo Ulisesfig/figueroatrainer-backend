@@ -5,9 +5,16 @@ const adminController = {
   stats: async (req, res) => {
     try {
       const totalUsers = await User.countAll();
-      // Nota: Para activeUsers necesitaríamos un campo de última actividad; placeholder por ahora
-      const activeUsers = 0;
-      const totalPlans = 0; // Si en el futuro hay planes
+      // Usuarios activos en últimos 7 días
+      const { query } = require('../config/database');
+      const result = await query(`
+        SELECT COUNT(*)::int AS count
+        FROM users
+        WHERE last_login IS NOT NULL
+          AND last_login >= NOW() - INTERVAL '7 days'
+      `);
+      const activeUsers = result.rows[0]?.count || 0;
+      const totalPlans = 0; // Placeholder hasta implementar planes
 
       res.json({ success: true, totalUsers, activeUsers, totalPlans });
     } catch (error) {
@@ -62,12 +69,106 @@ const adminController = {
   activity: async (req, res) => {
     try {
       const items = [
-        { action: 'Usuario registrado', at: new Date().toISOString() },
-        { action: 'Login exitoso', at: new Date(Date.now() - 3600_000).toISOString() }
+        { action: 'Usuario registrado', timestamp: new Date().toISOString() },
+        { action: 'Login exitoso', timestamp: new Date(Date.now() - 3600_000).toISOString() }
       ];
       res.json({ success: true, items });
     } catch (error) {
       console.error('Error obteniendo actividad:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  }
+  ,
+
+  // Obtener usuario por ID
+  getUserById: async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      res.json({ success: true, user });
+    } catch (error) {
+      console.error('Error obteniendo usuario:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Actualizar usuario por ID (campos permitidos)
+  updateUserById: async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+      const data = req.body || {};
+      try {
+        const updated = await User.updateAdmin(id, data);
+        if (!updated) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        res.json({ success: true, message: 'Usuario actualizado', user: updated });
+      } catch (err) {
+        if (err.code === 'VALIDATION') {
+          return res.status(400).json({ success: false, message: err.message, field: err.field });
+        }
+        if (err.code === '23505') {
+          // Unique violation
+          const msg = err.constraint?.includes('email') ? 'Este email ya está registrado'
+                    : err.constraint?.includes('phone') ? 'Este teléfono ya está registrado'
+                    : err.constraint?.includes('username') ? 'Este documento ya está registrado'
+                    : 'Valor duplicado';
+          return res.status(409).json({ success: false, message: msg });
+        }
+        console.error('Error actualizando usuario:', err);
+        return res.status(500).json({ success: false, message: 'Error del servidor' });
+      }
+    } catch (error) {
+      console.error('Error en updateUserById:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Eliminar usuario por ID
+  deleteUserById: async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+      const deleted = await User.delete(id);
+      if (!deleted) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      res.json({ success: true, message: 'Usuario eliminado', id: deleted.id });
+    } catch (error) {
+      console.error('Error eliminando usuario:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Cambiar rol de usuario
+  setUserRole: async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const { role } = req.body || {};
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+      if (!role) {
+        return res.status(400).json({ success: false, message: 'Rol requerido' });
+      }
+      try {
+        const updated = await User.setRole(id, role);
+        if (!updated) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        res.json({ success: true, message: 'Rol actualizado', user: updated });
+      } catch (err) {
+        if (err.code === 'VALIDATION') {
+          return res.status(400).json({ success: false, message: err.message, field: err.field });
+        }
+        console.error('Error actualizando rol:', err);
+        return res.status(500).json({ success: false, message: 'Error del servidor' });
+      }
+    } catch (error) {
+      console.error('Error en setUserRole:', error);
       res.status(500).json({ success: false, message: 'Error del servidor' });
     }
   }

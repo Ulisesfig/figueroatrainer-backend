@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const User = {
   // Crear un nuevo usuario
   create: async (userData) => {
-    const { name, surname, phone, email, username, documentType, password } = userData;
+    const { name, surname, phone, email, username, documentType, password, role = 'user' } = userData;
     const text = `
-      INSERT INTO users (name, surname, phone, email, username, document_type, password) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) 
-      RETURNING id, name, surname, phone, email, username, document_type, created_at
+      INSERT INTO users (name, surname, phone, email, username, document_type, role, password) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+      RETURNING id, name, surname, phone, email, username, document_type, role, created_at
     `;
-    const values = [name, surname, phone, email, username, documentType, password];
+    const values = [name, surname, phone, email, username, documentType, role, password];
     
     try {
       const result = await query(text, values);
@@ -113,6 +113,42 @@ const User = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Conteo total de usuarios
+  countAll: async () => {
+    const text = 'SELECT COUNT(*)::int AS count FROM users';
+    const result = await query(text);
+    return result.rows[0]?.count || 0;
+  },
+
+  // Lista paginada de usuarios (sin password)
+  findPaginated: async (page = 1, limit = 50) => {
+    const offset = (page - 1) * limit;
+    const text = `
+      SELECT id, name, surname, email, phone, username, document_type, role, created_at 
+      FROM users 
+      ORDER BY created_at DESC 
+      LIMIT $1 OFFSET $2
+    `;
+    const values = [limit, offset];
+    const result = await query(text, values);
+    return result.rows;
+  },
+
+  // Búsqueda por término simple en varios campos
+  searchUsers: async (q, limit = 20) => {
+    const term = `%${q}%`;
+    const text = `
+      SELECT id, name, surname, email, phone, username, document_type, role, created_at
+      FROM users
+      WHERE email ILIKE $1 OR phone ILIKE $1 OR username ILIKE $1 OR name ILIKE $1 OR surname ILIKE $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `;
+    const values = [term, limit];
+    const result = await query(text, values);
+    return result.rows;
   }
 };
 

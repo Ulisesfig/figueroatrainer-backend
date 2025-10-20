@@ -6,7 +6,7 @@ const authController = {
   // Registro de usuario
   register: async (req, res) => {
     try {
-      const { name, surname, phone, email, username, documentType, password } = req.body;
+  let { name, surname, phone, email, username, documentType, password } = req.body;
 
       // Validar que todos los campos estén presentes
       if (!name || !surname || !phone || !email || !username || !documentType || !password) {
@@ -14,6 +14,30 @@ const authController = {
           success: false, 
           message: 'Todos los campos son requeridos' 
         });
+      }
+
+      // Normalizaciones
+      documentType = String(documentType).trim().toLowerCase();
+      email = String(email).trim().toLowerCase();
+      username = String(username).trim();
+      phone = String(phone).trim();
+
+      // Validación de tipo de documento
+      if (!['dni', 'pasaporte'].includes(documentType)) {
+        return res.status(400).json({ success: false, message: 'Tipo de documento inválido' });
+      }
+
+      // Validar formato DNI (solo números)
+      if (documentType === 'dni' && !/^\d+$/.test(username)) {
+        return res.status(400).json({ success: false, message: 'El DNI debe contener solo números', field: 'username' });
+      }
+
+      // Pasaporte alfanumérico y en mayúsculas
+      if (documentType === 'pasaporte') {
+        if (!/^[A-Za-z0-9]+$/.test(username)) {
+          return res.status(400).json({ success: false, message: 'El Pasaporte debe contener solo letras y números', field: 'username' });
+        }
+        username = username.toUpperCase();
       }
 
       // Verificar si el email ya existe
@@ -106,7 +130,7 @@ const authController = {
   // Login de usuario
   login: async (req, res) => {
     try {
-      const { email, password, remember } = req.body;
+  const { email, password, remember } = req.body;
 
       // Validar campos
       if (!email || !password) {
@@ -117,7 +141,7 @@ const authController = {
       }
 
       // Buscar usuario por email
-      const user = await User.findByEmail(email);
+  const user = await User.findByEmail(String(email).trim().toLowerCase());
       if (!user) {
         return res.status(401).json({ 
           success: false, 
@@ -141,7 +165,8 @@ const authController = {
           email: user.email, 
           name: user.name, 
           surname: user.surname, 
-          phone: user.phone 
+          phone: user.phone,
+          role: user.role || 'user'
         }, 
         process.env.JWT_SECRET, 
         { expiresIn: remember ? '7d' : '1d' }
@@ -162,13 +187,14 @@ const authController = {
       res.json({ 
         success: true, 
         message: 'Login exitoso',
-        redirectUrl: '/pages/dashboard.html',
+        redirectUrl: (user.role === 'admin') ? '/pages/admin.html' : '/pages/dashboard.html',
         user: {
           id: user.id,
           name: user.name,
           surname: user.surname,
           phone: user.phone,
-          email: user.email
+          email: user.email,
+          role: user.role || 'user'
         }
       });
     } catch (error) {

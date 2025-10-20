@@ -20,6 +20,7 @@ const { testConnection } = require('./src/config/database');
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const contactRoutes = require('./src/routes/contactRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
 
 // Importar middleware
 const { requireAuth } = require('./src/middleware/auth');
@@ -76,6 +77,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Proteger dashboard (solo usuarios logueados)
 app.get('/pages/dashboard.html', requireAuth, (req, res) => {

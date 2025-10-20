@@ -23,6 +23,17 @@ const requireAuth = (req, res, next) => {
   }
 };
 
+// Middleware para requerir rol admin
+const requireAdmin = (req, res, next) => {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'ADMIN')) {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Se requieren permisos de administrador.'
+    });
+  }
+  next();
+};
+
 // Middleware opcional de autenticación (no falla si no hay token)
 const optionalAuth = (req, res, next) => {
   const token = req.cookies.token;
@@ -41,5 +52,6 @@ const optionalAuth = (req, res, next) => {
 
 module.exports = {
   requireAuth,
+  requireAdmin,
   optionalAuth
 };

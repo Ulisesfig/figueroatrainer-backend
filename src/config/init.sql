@@ -13,7 +13,8 @@ CREATE TABLE users (
   phone VARCHAR(20) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   username VARCHAR(50) UNIQUE NOT NULL,
-  document_type VARCHAR(20) NOT NULL,
+  document_type VARCHAR(20) NOT NULL DEFAULT 'dni',
+  role VARCHAR(20) NOT NULL DEFAULT 'user',
   password VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -32,6 +33,7 @@ CREATE TABLE contacts (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_contacts_email ON contacts(email);
 CREATE INDEX idx_contacts_created_at ON contacts(created_at);
 

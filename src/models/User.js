@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const User = {
   // Crear un nuevo usuario
   create: async (userData) => {
-    const { name, surname, phone, email, password } = userData;
+    const { name, surname, phone, email, username, documentType, password } = userData;
     const text = `
-      INSERT INTO users (name, surname, phone, email, password) 
-      VALUES ($1, $2, $3, $4, $5) 
-      RETURNING id, name, surname, phone, email, created_at
+      INSERT INTO users (name, surname, phone, email, username, document_type, password) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7) 
+      RETURNING id, name, surname, phone, email, username, document_type, created_at
     `;
-    const values = [name, surname, phone, email, password];
+    const values = [name, surname, phone, email, username, documentType, password];
     
     try {
       const result = await query(text, values);
@@ -23,6 +23,32 @@ const User = {
   findByEmail: async (email) => {
     const text = 'SELECT * FROM users WHERE email = $1';
     const values = [email];
+    
+    try {
+      const result = await query(text, values);
+      return result.rows[0];
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Buscar usuario por teléfono
+  findByPhone: async (phone) => {
+    const text = 'SELECT * FROM users WHERE phone = $1';
+    const values = [phone];
+    
+    try {
+      const result = await query(text, values);
+      return result.rows[0];
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Buscar usuario por username (documento)
+  findByUsername: async (username) => {
+    const text = 'SELECT * FROM users WHERE username = $1';
+    const values = [username];
     
     try {
       const result = await query(text, values);

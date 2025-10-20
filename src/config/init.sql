@@ -10,8 +10,10 @@ CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   surname VARCHAR(100) NOT NULL,
-  phone VARCHAR(20) NOT NULL,
+  phone VARCHAR(20) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  document_type VARCHAR(20) NOT NULL,
   password VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -28,6 +30,8 @@ CREATE TABLE contacts (
 
 -- Índices para optimizar búsquedas
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_phone ON users(phone);
+CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_contacts_email ON contacts(email);
 CREATE INDEX idx_contacts_created_at ON contacts(created_at);
 

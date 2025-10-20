@@ -6,10 +6,10 @@ const authController = {
   // Registro de usuario
   register: async (req, res) => {
     try {
-      const { name, surname, phone, email, password } = req.body;
+      const { name, surname, phone, email, username, documentType, password } = req.body;
 
       // Validar que todos los campos estén presentes
-      if (!name || !surname || !phone || !email || !password) {
+      if (!name || !surname || !phone || !email || !username || !documentType || !password) {
         return res.status(400).json({ 
           success: false, 
           message: 'Todos los campos son requeridos' 
@@ -17,11 +17,32 @@ const authController = {
       }
 
       // Verificar si el email ya existe
-      const existingUser = await User.findByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ 
+      const existingEmail = await User.findByEmail(email);
+      if (existingEmail) {
+        return res.status(409).json({ 
           success: false, 
-          message: 'El email ya está registrado' 
+          message: 'Este email ya está registrado',
+          field: 'email'
+        });
+      }
+
+      // Verificar si el teléfono ya existe
+      const existingPhone = await User.findByPhone(phone);
+      if (existingPhone) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Este teléfono ya está registrado',
+          field: 'phone'
+        });
+      }
+
+      // Verificar si el username (documento) ya existe
+      const existingUsername = await User.findByUsername(username);
+      if (existingUsername) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Este documento ya está registrado',
+          field: 'username'
         });
       }
 
@@ -34,6 +55,8 @@ const authController = {
         surname,
         phone,
         email,
+        username,
+        documentType,
         password: hashedPassword
       });
 
@@ -44,11 +67,34 @@ const authController = {
           id: newUser.id,
           name: newUser.name,
           surname: newUser.surname,
-          email: newUser.email
+          email: newUser.email,
+          phone: newUser.phone,
+          username: newUser.username
         }
       });
     } catch (error) {
       console.error('Error en registro:', error);
+      
+      // Manejar errores de constraint de PostgreSQL
+      if (error.code === '23505') { // Unique violation
+        const field = error.constraint?.includes('email') ? 'email' 
+                    : error.constraint?.includes('phone') ? 'phone'
+                    : error.constraint?.includes('username') ? 'username'
+                    : 'field';
+        
+        const messages = {
+          email: 'Este email ya está registrado',
+          phone: 'Este teléfono ya está registrado',
+          username: 'Este documento ya está registrado'
+        };
+        
+        return res.status(409).json({ 
+          success: false, 
+          message: messages[field] || 'Este valor ya está registrado',
+          field
+        });
+      }
+      
       res.status(500).json({ 
         success: false, 
         message: 'Error al registrar usuario',

@@ -20,6 +20,10 @@ router.get('/profile', userController.getProfile);
 router.put('/profile', updateProfileValidation, validate, userController.updateProfile);
 router.delete('/account', userController.deleteAccount);
 
+// Planes del usuario
+router.get('/my-plans', userController.getMyPlans);
+router.patch('/my-plans/:planId/status', userController.updatePlanStatus);
+
 // Ruta para admin (TODO: agregar middleware de admin)
 router.get('/all', userController.getAllUsers);
 

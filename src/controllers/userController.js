@@ -112,6 +112,70 @@ const userController = {
         message: 'Error al obtener lista de usuarios' 
       });
     }
+  },
+
+  // Obtener planes asignados al usuario actual
+  getMyPlans: async (req, res) => {
+    try {
+      const Plan = require('../models/Plan');
+      const plans = await Plan.getUserPlans(req.user.id);
+      
+      res.json({ 
+        success: true, 
+        plans 
+      });
+    } catch (error) {
+      console.error('Error al obtener planes:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener tus planes' 
+      });
+    }
+  },
+
+  // Actualizar estado de plan asignado
+  updatePlanStatus: async (req, res) => {
+    try {
+      const planId = parseInt(req.params.planId, 10);
+      const { status } = req.body;
+
+      if (Number.isNaN(planId) || !status) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Plan ID y estado requeridos' 
+        });
+      }
+
+      if (!['active', 'completed', 'archived'].includes(status)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Estado inválido' 
+        });
+      }
+
+      const Plan = require('../models/Plan');
+      // Reasignar con el nuevo estado (upsert actualiza)
+      const updated = await Plan.assignToUser(req.user.id, planId, status);
+
+      if (!updated) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Plan no encontrado o no asignado' 
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Estado actualizado',
+        assignment: updated
+      });
+    } catch (error) {
+      console.error('Error actualizando estado:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error del servidor' 
+      });
+    }
   }
 };
 

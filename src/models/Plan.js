@@ -116,6 +116,19 @@ const Plan = {
     const text = 'SELECT COUNT(*)::int AS count FROM user_plans WHERE plan_id = $1';
     const result = await query(text, [planId]);
     return result.rows[0]?.count || 0;
+  },
+
+  // Obtener usuarios asignados a un plan
+  getAssignees: async (planId) => {
+    const text = `
+      SELECT u.id, u.name, u.surname, u.username, u.email
+      FROM user_plans up
+      JOIN users u ON up.user_id = u.id
+      WHERE up.plan_id = $1
+      ORDER BY u.name ASC, u.surname ASC
+    `;
+    const result = await query(text, [planId]);
+    return result.rows || [];
   }
 };
 

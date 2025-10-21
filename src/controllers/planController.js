@@ -199,6 +199,21 @@ const planController = {
       console.error('Error obteniendo conteo de asignaciones:', error);
       res.status(500).json({ success: false, message: 'Error del servidor' });
     }
+  },
+
+  // Obtener usuarios asignados a un plan
+  assignees: async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+      const users = await Plan.getAssignees(id);
+      res.json({ success: true, users });
+    } catch (error) {
+      console.error('Error obteniendo usuarios asignados:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
   }
 };
 

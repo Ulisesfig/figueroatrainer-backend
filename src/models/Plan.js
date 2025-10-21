@@ -109,6 +109,13 @@ const Plan = {
     const text = 'DELETE FROM user_plans WHERE user_id = $1 AND plan_id = $2 RETURNING id';
     const result = await query(text, [userId, planId]);
     return result.rows[0];
+  },
+
+  // Contar cuántos usuarios tienen asignado un plan
+  countAssignments: async (planId) => {
+    const text = 'SELECT COUNT(*)::int AS count FROM user_plans WHERE plan_id = $1';
+    const result = await query(text, [planId]);
+    return result.rows[0]?.count || 0;
   }
 };
 

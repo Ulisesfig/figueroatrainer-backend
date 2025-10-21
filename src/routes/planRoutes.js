@@ -27,6 +27,7 @@ router.get('/', planController.list);
 router.get('/:id', planController.getById);
 router.patch('/:id', updatePlanValidation, validate, planController.update);
 router.delete('/:id', planController.delete);
+router.get('/:id/assignment-count', planController.assignmentCount);
 
 // Asignación de planes a usuarios
 router.post('/assign/:userId', planController.assignToUser);

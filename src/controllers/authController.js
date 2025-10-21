@@ -195,6 +195,7 @@ const authController = {
         success: true, 
         message: 'Login exitoso',
         redirectUrl: (user.role === 'admin') ? '/pages/admin.html' : '/pages/dashboard.html',
+        token: token, // Enviar token también en JSON para fallback en móviles
         user: {
           id: user.id,
           name: user.name,

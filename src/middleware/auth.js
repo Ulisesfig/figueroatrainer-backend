@@ -2,7 +2,16 @@ const jwt = require('jsonwebtoken');
 
 // Middleware para verificar autenticación
 const requireAuth = (req, res, next) => {
-  const token = req.cookies.token;
+  // Intentar obtener token de cookie primero, luego del header Authorization
+  let token = req.cookies.token;
+  
+  // Fallback: buscar en header Authorization (para móviles con localStorage)
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (!token) {
     return res.status(401).json({ 
@@ -36,7 +45,16 @@ const requireAdmin = (req, res, next) => {
 
 // Middleware opcional de autenticación (no falla si no hay token)
 const optionalAuth = (req, res, next) => {
-  const token = req.cookies.token;
+  // Intentar obtener token de cookie primero, luego del header Authorization
+  let token = req.cookies.token;
+  
+  // Fallback: buscar en header Authorization
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (token) {
     try {

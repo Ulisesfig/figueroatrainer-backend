@@ -4,20 +4,58 @@ const planController = {
   // Crear un nuevo plan
   create: async (req, res) => {
     try {
-      const { title, description, content, category } = req.body;
+      const { title, description, content, category, days } = req.body;
 
-      if (!title || !content) {
-        return res.status(400).json({ success: false, message: 'Título y contenido son requeridos' });
+      if (!title) {
+        return res.status(400).json({ success: false, message: 'El título es requerido' });
       }
 
       if (category && !['training', 'nutrition'].includes(category)) {
         return res.status(400).json({ success: false, message: 'Categoría inválida' });
       }
 
+      // Si vienen días estructurados, construir fallback de texto y JSON
+      let contentText = content;
+      let contentJson = null;
+      if ((!content || typeof content !== 'string' || !content.trim()) && Array.isArray(days)) {
+        // Normalizar estructura de days
+        const safeDays = days.map((d, idx) => ({
+          day: d?.day || idx + 1,
+          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => ({
+            id: ex?.id ?? ex?.exercise_id ?? null,
+            name: ex?.name || '',
+            sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
+            reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+            notes: ex?.notes || ex?.observations || null,
+            youtube_url: ex?.youtube_url || ex?.youtube || null
+          })) : []
+        }));
+        contentJson = { days: safeDays };
+        // Fallback texto para compatibilidad
+        contentText = safeDays.map(d => {
+          const lines = d.exercises.length ? d.exercises.map((ex, i) => {
+            const parts = [];
+            if (ex.id) parts.push(`[#ID=${ex.id}]`);
+            if (ex.name) parts.push(`name=${ex.name}`);
+            if (ex.sets != null) parts.push(`sets=${ex.sets}`);
+            if (ex.reps != null) parts.push(`reps=${ex.reps}`);
+            if (ex.notes) parts.push(`obs=${ex.notes}`);
+            if (ex.youtube_url) parts.push(`yt=${ex.youtube_url}`);
+            return `${i + 1}. ${parts.join(' | ')}`;
+          }).join('\n') : 'Sin ejercicios';
+          return `Día ${d.day}:\n${lines}`;
+        }).join('\n\n');
+      }
+
+      if (!contentText || !contentText.trim()) {
+        return res.status(400).json({ success: false, message: 'Debe enviar contenido o días con ejercicios' });
+      }
+
       const plan = await Plan.create({
         title,
         description,
-        content,
+        content: contentText,
+        contentJson,
         category: category || 'training',
         createdBy: req.user.id
       });
@@ -85,17 +123,52 @@ const planController = {
         return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
-      const { title, description, content, category } = req.body;
+      const { title, description, content, category, days } = req.body;
 
-      if (!title || !content) {
-        return res.status(400).json({ success: false, message: 'Título y contenido son requeridos' });
+      if (!title) {
+        return res.status(400).json({ success: false, message: 'El título es requerido' });
       }
 
       if (category && !['training', 'nutrition'].includes(category)) {
         return res.status(400).json({ success: false, message: 'Categoría inválida' });
       }
 
-      const plan = await Plan.update(id, { title, description, content, category });
+      // Reconstruir si vienen days
+      let contentText = content;
+      let contentJson = null;
+      if ((!content || typeof content !== 'string' || !content.trim()) && Array.isArray(days)) {
+        const safeDays = days.map((d, idx) => ({
+          day: d?.day || idx + 1,
+          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => ({
+            id: ex?.id ?? ex?.exercise_id ?? null,
+            name: ex?.name || '',
+            sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
+            reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+            notes: ex?.notes || ex?.observations || null,
+            youtube_url: ex?.youtube_url || ex?.youtube || null
+          })) : []
+        }));
+        contentJson = { days: safeDays };
+        contentText = safeDays.map(d => {
+          const lines = d.exercises.length ? d.exercises.map((ex, i) => {
+            const parts = [];
+            if (ex.id) parts.push(`[#ID=${ex.id}]`);
+            if (ex.name) parts.push(`name=${ex.name}`);
+            if (ex.sets != null) parts.push(`sets=${ex.sets}`);
+            if (ex.reps != null) parts.push(`reps=${ex.reps}`);
+            if (ex.notes) parts.push(`obs=${ex.notes}`);
+            if (ex.youtube_url) parts.push(`yt=${ex.youtube_url}`);
+            return `${i + 1}. ${parts.join(' | ')}`;
+          }).join('\n') : 'Sin ejercicios';
+          return `Día ${d.day}:\n${lines}`;
+        }).join('\n\n');
+      }
+
+      if (!contentText || !contentText.trim()) {
+        return res.status(400).json({ success: false, message: 'Debe enviar contenido o días con ejercicios' });
+      }
+
+      const plan = await Plan.update(id, { title, description, content: contentText, contentJson, category });
       if (!plan) {
         return res.status(404).json({ success: false, message: 'Plan no encontrado' });
       }

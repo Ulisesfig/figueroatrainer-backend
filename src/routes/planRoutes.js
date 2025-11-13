@@ -8,14 +8,15 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 // Validaciones
 const createPlanValidation = [
   body('title').trim().notEmpty().withMessage('El título es requerido'),
-  body('content').trim().notEmpty().withMessage('El contenido es requerido'),
-  body('category').optional().isIn(['training', 'nutrition']).withMessage('Categoría inválida')
+  // 'content' o 'days' serán verificados en el controlador para mayor flexibilidad
+  body('category').optional().isIn(['training', 'nutrition']).withMessage('Categoría inválida'),
+  body('days').optional().isArray().withMessage('days debe ser un arreglo si se envía')
 ];
 
 const updatePlanValidation = [
   body('title').trim().notEmpty().withMessage('El título es requerido'),
-  body('content').trim().notEmpty().withMessage('El contenido es requerido'),
-  body('category').optional().isIn(['training', 'nutrition']).withMessage('Categoría inválida')
+  body('category').optional().isIn(['training', 'nutrition']).withMessage('Categoría inválida'),
+  body('days').optional().isArray().withMessage('days debe ser un arreglo si se envía')
 ];
 
 // Todas las rutas requieren autenticación y rol admin

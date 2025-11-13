@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const Plan = {
   // Crear un nuevo plan
   create: async (planData) => {
-    const { title, description, content, category = 'training', createdBy } = planData;
+    const { title, description, content, contentJson = null, category = 'training', createdBy } = planData;
     const text = `
-      INSERT INTO plans (title, description, content, category, created_by) 
-      VALUES ($1, $2, $3, $4, $5) 
-      RETURNING id, title, description, content, category, created_by, created_at, updated_at
+      INSERT INTO plans (title, description, content, content_json, category, created_by) 
+      VALUES ($1, $2, $3, $4, $5, $6) 
+      RETURNING id, title, description, content, content_json, category, created_by, created_at, updated_at
     `;
-    const values = [title, description || null, content, category, createdBy || null];
+    const values = [title, description || null, content, contentJson, category, createdBy || null];
     const result = await query(text, values);
     return result.rows[0];
   },
@@ -59,14 +59,14 @@ const Plan = {
 
   // Actualizar plan
   update: async (id, planData) => {
-    const { title, description, content, category } = planData;
+    const { title, description, content, contentJson = null, category } = planData;
     const text = `
       UPDATE plans 
-      SET title = $1, description = $2, content = $3, category = $4
-      WHERE id = $5
-      RETURNING id, title, description, content, category, created_by, created_at, updated_at
+      SET title = $1, description = $2, content = $3, content_json = $4, category = $5
+      WHERE id = $6
+      RETURNING id, title, description, content, content_json, category, created_by, created_at, updated_at
     `;
-    const values = [title, description || null, content, category, id];
+    const values = [title, description || null, content, contentJson, category, id];
     const result = await query(text, values);
     return result.rows[0];
   },
@@ -94,7 +94,7 @@ const Plan = {
   // Obtener planes asignados a un usuario
   getUserPlans: async (userId) => {
     const text = `
-      SELECT up.*, p.title, p.description, p.category, p.content
+      SELECT up.*, p.title, p.description, p.category, p.content, p.content_json
       FROM user_plans up
       JOIN plans p ON up.plan_id = p.id
       WHERE up.user_id = $1

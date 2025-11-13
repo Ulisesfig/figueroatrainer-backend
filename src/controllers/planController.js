@@ -5,6 +5,16 @@ const planController = {
   create: async (req, res) => {
     try {
       const { title, description, content, category, days } = req.body;
+      
+      console.log('🔵 [CREATE PLAN] Datos recibidos:');
+      console.log('  - Title:', title);
+      console.log('  - Category:', category);
+      console.log('  - Days array:', Array.isArray(days) ? `${days.length} días` : 'No days');
+      if (Array.isArray(days)) {
+        days.forEach((d, i) => {
+          console.log(`  - Día ${i+1}: ${d?.exercises?.length || 0} ejercicios`);
+        });
+      }
 
       if (!title) {
         return res.status(400).json({ success: false, message: 'El título es requerido' });
@@ -45,6 +55,9 @@ const planController = {
           }).join('\n') : 'Sin ejercicios';
           return `Día ${d.day}:\n${lines}`;
         }).join('\n\n');
+        
+        console.log('🟢 [CREATE PLAN] Content JSON construido:', JSON.stringify(contentJson, null, 2));
+        console.log('🟢 [CREATE PLAN] Content text construido (primeras 300 chars):', contentText.substring(0, 300));
       }
 
       if (!contentText || !contentText.trim()) {

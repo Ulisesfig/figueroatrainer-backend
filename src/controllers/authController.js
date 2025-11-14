@@ -282,7 +282,7 @@ const authController = {
         message: 'Te enviamos un código de verificación a tu email. Ingrésalo para restablecer tu contraseña.'
       };
 
-      // Enviar email real si está configurado
+      // Enviar email real si está configurado (en segundo plano, sin bloquear)
       let emailSent = false;
       try { 
         // Timeout de 8 segundos para no bloquear la respuesta
@@ -297,12 +297,11 @@ const authController = {
         emailSent = false; 
       }
 
-      // Si no se pudo enviar, devolver error (no mostrar código)
+      // Siempre devolver success para permitir que el usuario continúe
+      // Si el email falló, se informa pero no se bloquea el flujo
+      payload.emailSent = emailSent;
       if (!emailSent) {
-        return res.status(500).json({
-          success: false,
-          message: 'No pudimos enviar el email en este momento. Intentá nuevamente en unos minutos.'
-        });
+        payload.message = 'Código generado. Si no recibís el email, verificá tu casilla de spam o solicitá uno nuevo.';
       }
 
       res.json(payload);

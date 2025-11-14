@@ -297,13 +297,12 @@ const authController = {
         emailSent = false; 
       }
 
-      // En desarrollo, devolver el código para facilitar pruebas
-      if (process.env.NODE_ENV !== 'production') payload.devCode = code;
-      // Si no se pudo enviar correo (SMTP no configurado o error), exponer el código para que el usuario pueda continuar
+      // Si no se pudo enviar, devolver error (no mostrar código)
       if (!emailSent) {
-        payload.devCode = code; // forzar visibilidad del código
-        payload.emailSimulated = true;
-        payload.message = 'No pudimos enviar el correo ahora. Usá este código para verificar y continuar.';
+        return res.status(500).json({
+          success: false,
+          message: 'No pudimos enviar el email en este momento. Intentá nuevamente en unos minutos.'
+        });
       }
 
       res.json(payload);

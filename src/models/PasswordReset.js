@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+﻿const { query } = require('../config/database');
 
 const PasswordReset = {
   create: async ({ userId, email, code, expiresAt }) => {
@@ -65,6 +65,36 @@ const PasswordReset = {
     `;
     const res = await query(text, [email]);
     return res.rows[0];
+  },
+
+  countRecentAttemptsForEmail: async (email, windowMinutes = 10) => {
+    const text = `
+      SELECT COUNT(*) as count
+      FROM password_resets
+      WHERE email = $1 AND created_at > NOW() - INTERVAL '${windowMinutes} minutes'
+    `;
+    const res = await query(text, [email]);
+    return parseInt(res.rows[0].count, 10);
+  },
+
+  countRecentAttemptsForEmail: async (email, windowMinutes = 10) => {
+    const text = `
+      SELECT COUNT(*) as count
+      FROM password_resets
+      WHERE email = $1 AND created_at > NOW() - INTERVAL '${windowMinutes} minutes'
+    `;
+    const res = await query(text, [email]);
+    return parseInt(res.rows[0].count, 10);
+  }
+};
+
+  countRecentAttemptsForEmail: async (email, windowMinutes = 10) => {
+    const text = \n      SELECT COUNT(*) as count
+      FROM password_resets
+      WHERE email = \ AND created_at > NOW() - INTERVAL \'\ minutes\'
+    ;
+    const res = await query(text, [email]);
+    return parseInt(res.rows[0].count, 10);
   }
 };
 

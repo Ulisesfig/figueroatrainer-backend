@@ -263,6 +263,22 @@ const authController = {
         });
       }
 
+      // Límite de intentos: máximo 3 envíos cada 10 minutos (1 inicial + 2 reenvíos)
+      const MAX_ATTEMPTS = parseInt(process.env.MAX_RECOVER_ATTEMPTS || '3', 10);
+      let attemptCount = 0;
+      try {
+        attemptCount = await PasswordReset.countRecentAttemptsForEmail(user.email, 10);
+      } catch (e) {
+        console.warn('No se pudo contar intentos:', e.message);
+      }
+
+      if (attemptCount >= MAX_ATTEMPTS) {
+        return res.status(429).json({
+          success: false,
+          message: `Alcanzaste el límite de ${MAX_ATTEMPTS} intentos en 10 minutos. Esperá un momento antes de reintentar.`
+        });
+      }
+
       // Cooldown por email para evitar spam de solicitudes
       const COOLDOWN_MS = parseInt(process.env.RECOVER_COOLDOWN_MS || '60000', 10); // 60s por defecto
       let latestReset;

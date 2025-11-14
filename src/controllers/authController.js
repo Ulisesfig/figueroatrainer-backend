@@ -263,14 +263,37 @@ const authController = {
         });
       }
 
-      // Generar un código de 6 dígitos y expiración de 10 minutos
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min
+      // Cooldown por email para evitar spam de solicitudes
+      const COOLDOWN_MS = parseInt(process.env.RECOVER_COOLDOWN_MS || '60000', 10); // 60s por defecto
+      let latestReset;
       try {
-        await PasswordReset.create({ userId: user.id, email: user.email, code, expiresAt });
-      } catch (dbErr) {
-        console.warn('No se pudo persistir en password_resets, se usará fallback en memoria:', dbErr.message);
-        resetStore.set(user.email, { code, expiresAt, verified: false });
+        latestReset = await PasswordReset.findLatestForEmail(user.email);
+      } catch (e) {
+        latestReset = null;
+      }
+
+      let code;
+      let expiresAt;
+      const nowMs = Date.now();
+      if (latestReset && latestReset.created_at) {
+        const lastMs = new Date(latestReset.created_at).getTime();
+        const diff = nowMs - lastMs;
+        if (diff < COOLDOWN_MS) {
+          // Reutilizar el último código dentro del cooldown
+          code = String(latestReset.code);
+          expiresAt = new Date(latestReset.expires_at).getTime();
+        }
+      }
+      // Si no hay código reutilizable, generar uno nuevo
+      if (!code) {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+        expiresAt = nowMs + 10 * 60 * 1000; // 10 min
+        try {
+          await PasswordReset.create({ userId: user.id, email: user.email, code, expiresAt });
+        } catch (dbErr) {
+          console.warn('No se pudo persistir en password_resets, se usará fallback en memoria:', dbErr.message);
+          resetStore.set(user.email, { code, expiresAt, verified: false });
+        }
       }
 
       // En un entorno real: enviar email con el código

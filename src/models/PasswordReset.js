@@ -12,6 +12,17 @@ const PasswordReset = {
     return res.rows[0];
   },
 
+  findLatestForEmail: async (email) => {
+    const text = `
+      SELECT * FROM password_resets
+      WHERE email = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const res = await query(text, [email]);
+    return res.rows[0];
+  },
+
   findValid: async (email, code) => {
     const text = `
       SELECT * FROM password_resets

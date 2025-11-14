@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const authController = require('../controllers/authController');
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validate');
@@ -34,11 +35,28 @@ const verifyValidation = [
   body('code').isLength({ min: 4 }).withMessage('Código inválido')
 ];
 
+// Rate limiting
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiados intentos de login, intentá más tarde.' }
+});
+
+const recoverLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: true, message: 'Solicitud recibida. Si no ves el email, esperá un minuto y volvé a intentar.' }
+});
+
 // Rutas
 router.post('/register', registerValidation, validate, authController.register);
-router.post('/login', loginValidation, validate, authController.login);
+router.post('/login', loginLimiter, loginValidation, validate, authController.login);
 router.post('/logout', authController.logout);
-router.post('/recover', recoverValidation, validate, authController.recover);
+router.post('/recover', recoverLimiter, recoverValidation, validate, authController.recover);
 router.post('/reset', resetValidation, validate, authController.resetPassword);
 router.post('/verify', verifyValidation, validate, authController.verifyCode);
 router.get('/me', requireAuth, authController.getMe);

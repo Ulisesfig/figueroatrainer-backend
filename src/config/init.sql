@@ -4,6 +4,7 @@
 -- Eliminar tablas si existen (para desarrollo)
 DROP TABLE IF EXISTS contacts CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS password_resets CASCADE;
 
 -- Tabla de usuarios
 CREATE TABLE users (
@@ -29,6 +30,18 @@ CREATE TABLE contacts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de códigos de recuperación
+CREATE TABLE password_resets (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  code VARCHAR(12) NOT NULL,
+  verified BOOLEAN NOT NULL DEFAULT false,
+  used_at TIMESTAMP NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Índices para optimizar búsquedas
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone);
@@ -36,6 +49,9 @@ CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_contacts_email ON contacts(email);
 CREATE INDEX idx_contacts_created_at ON contacts(created_at);
+CREATE INDEX idx_password_resets_email ON password_resets(email);
+CREATE INDEX idx_password_resets_code ON password_resets(code);
+CREATE INDEX idx_password_resets_expires ON password_resets(expires_at);
 
 -- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -58,3 +74,4 @@ CREATE TRIGGER update_users_updated_at
 
 COMMENT ON TABLE users IS 'Tabla de usuarios registrados en la plataforma';
 COMMENT ON TABLE contacts IS 'Tabla de mensajes de contacto recibidos';
+COMMENT ON TABLE password_resets IS 'Códigos para recuperación de contraseña (vencimiento y uso único)';

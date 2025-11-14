@@ -1,9 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const PasswordReset = require('../models/PasswordReset');
+const { sendPasswordResetCode } = require('../utils/mailer');
 
-// Almacenamiento temporal en memoria para códigos de recuperación
-// Clave: email, Valor: { code, expiresAt }
+// Fallback de desarrollo si no hay DB (no se usa en producción)
 const resetStore = new Map();
 
 const authController = {
@@ -265,7 +266,12 @@ const authController = {
       // Generar un código de 6 dígitos y expiración de 10 minutos
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min
-  resetStore.set(user.email, { code, expiresAt, verified: false });
+      try {
+        await PasswordReset.create({ userId: user.id, email: user.email, code, expiresAt });
+      } catch (dbErr) {
+        console.warn('No se pudo persistir en password_resets, se usará fallback en memoria:', dbErr.message);
+        resetStore.set(user.email, { code, expiresAt, verified: false });
+      }
 
       // En un entorno real: enviar email con el código
       // Aquí lo registramos en logs para verificación en desarrollo
@@ -277,9 +283,10 @@ const authController = {
       };
 
       // En desarrollo, devolver el código para facilitar pruebas
-      if (process.env.NODE_ENV !== 'production') {
-        payload.devCode = code;
-      }
+      if (process.env.NODE_ENV !== 'production') payload.devCode = code;
+
+      // Enviar email real si está configurado
+      try { await sendPasswordResetCode(user.email, code); } catch (e) { console.warn('Mailer error:', e.message); }
 
       res.json(payload);
     } catch (error) {
@@ -300,30 +307,34 @@ const authController = {
       }
 
       const emailNorm = String(email).trim().toLowerCase();
-      const entry = resetStore.get(emailNorm);
-      if (!entry) {
-        return res.status(400).json({ success: false, message: 'Solicitá antes la recuperación' });
-      }
-      if (Date.now() > entry.expiresAt) {
-        resetStore.delete(emailNorm);
-        return res.status(400).json({ success: false, message: 'El código expiró. Volvé a solicitarlo.' });
-      }
-      // Si se envía code, validarlo; si no, exigir verificación previa
-      if (code) {
-        if (String(code).trim() !== entry.code) {
-          return res.status(400).json({ success: false, message: 'Código inválido' });
+      let verifiedOk = false;
+      // Intentar vía DB
+      try {
+        if (code) {
+          const valid = await PasswordReset.findValid(emailNorm, String(code).trim());
+          if (!valid) return res.status(400).json({ success: false, message: 'Código inválido o vencido' });
+          await PasswordReset.markVerified(emailNorm, String(code).trim());
+          verifiedOk = true;
+        } else {
+          const valid = await PasswordReset.hasVerifiedValid(emailNorm);
+          if (valid) verifiedOk = true; else return res.status(400).json({ success: false, message: 'Debés verificar el código antes de restablecer la contraseña' });
         }
-        entry.verified = true;
-      } else if (!entry.verified) {
-        return res.status(400).json({ success: false, message: 'Debés verificar el código antes de restablecer la contraseña' });
+      } catch (dbErr) {
+        console.warn('Fallo consulta en password_resets, se intenta fallback memoria');
+        const entry = resetStore.get(emailNorm);
+        if (!entry) return res.status(400).json({ success: false, message: 'Solicitá antes la recuperación' });
+        if (Date.now() > entry.expiresAt) { resetStore.delete(emailNorm); return res.status(400).json({ success: false, message: 'El código expiró. Volvé a solicitarlo.' }); }
+        if (code) { if (String(code).trim() !== entry.code) return res.status(400).json({ success: false, message: 'Código inválido' }); entry.verified = true; }
+        else if (!entry.verified) return res.status(400).json({ success: false, message: 'Debés verificar el código antes de restablecer la contraseña' });
+        verifiedOk = true;
       }
 
       // Actualizar contraseña
       const hashed = await bcrypt.hash(String(password), 10);
       await User.updatePasswordByEmail(emailNorm, hashed);
 
-      // Invalidar código
-      resetStore.delete(emailNorm);
+  // Marcar como usado
+  try { await PasswordReset.consumeForEmail(emailNorm); } catch (_) { resetStore.delete(emailNorm); }
 
       res.json({ success: true, message: 'Contraseña actualizada correctamente. Ya podés iniciar sesión.' });
     } catch (error) {
@@ -339,20 +350,21 @@ const authController = {
         return res.status(400).json({ success: false, message: 'Email y código son requeridos' });
       }
       const emailNorm = String(email).trim().toLowerCase();
-      const entry = resetStore.get(emailNorm);
-      if (!entry) {
-        return res.status(400).json({ success: false, message: 'Solicitá antes la recuperación' });
+      try {
+        const valid = await PasswordReset.findValid(emailNorm, String(code).trim());
+        if (!valid) return res.status(400).json({ success: false, message: 'Código inválido o vencido' });
+        await PasswordReset.markVerified(emailNorm, String(code).trim());
+        res.json({ success: true, message: 'Código verificado. Ahora podés crear una nueva contraseña.' });
+      } catch (dbErr) {
+        // Fallback memoria
+        const entry = resetStore.get(emailNorm);
+        if (!entry) return res.status(400).json({ success: false, message: 'Solicitá antes la recuperación' });
+        if (Date.now() > entry.expiresAt) { resetStore.delete(emailNorm); return res.status(400).json({ success: false, message: 'El código expiró. Volvé a solicitarlo.' }); }
+        if (String(code).trim() !== entry.code) return res.status(400).json({ success: false, message: 'Código inválido' });
+        entry.verified = true;
+        resetStore.set(emailNorm, entry);
+        res.json({ success: true, message: 'Código verificado. Ahora podés crear una nueva contraseña.' });
       }
-      if (Date.now() > entry.expiresAt) {
-        resetStore.delete(emailNorm);
-        return res.status(400).json({ success: false, message: 'El código expiró. Volvé a solicitarlo.' });
-      }
-      if (String(code).trim() !== entry.code) {
-        return res.status(400).json({ success: false, message: 'Código inválido' });
-      }
-      entry.verified = true;
-      resetStore.set(emailNorm, entry);
-      res.json({ success: true, message: 'Código verificado. Ahora podés crear una nueva contraseña.' });
     } catch (error) {
       console.error('Error en verifyCode:', error);
       res.status(500).json({ success: false, message: 'Error al verificar código' });

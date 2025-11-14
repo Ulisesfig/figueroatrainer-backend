@@ -14,7 +14,15 @@ function createTransport() {
     return null;
   }
 
-  return nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+  return nodemailer.createTransport({ 
+    host, 
+    port, 
+    secure, 
+    auth: { user, pass },
+    connectionTimeout: 10000, // 10 segundos
+    greetingTimeout: 10000,
+    socketTimeout: 15000 // 15 segundos para enviar
+  });
 }
 
 async function sendPasswordResetCode(toEmail, code) {

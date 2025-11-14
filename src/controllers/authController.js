@@ -303,7 +303,10 @@ const authController = {
       // Responder inmediatamente al usuario sin esperar el email
       const payload = { 
         success: true, 
-        message: 'Te enviamos un código de verificación a tu email. Si no lo recibís en 1-2 minutos, verificá spam o solicitá uno nuevo.'
+        message: 'Te enviamos un código de verificación a tu email. Si no lo recibís en 1-2 minutos, verificá spam o solicitá uno nuevo.',
+        emailQueued: true,
+        cooldownMs: COOLDOWN_MS,
+        provider: 'sendgrid'
       };
       res.json(payload);
 

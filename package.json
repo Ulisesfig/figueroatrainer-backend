@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "init-db": "node src/utils/initDb.js"
+    "init-db": "node src/utils/initDb.js",
+    "test-email": "node scripts/send-test-email.js"
   },
   "keywords": [
     "express",

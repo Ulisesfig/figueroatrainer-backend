@@ -93,6 +93,65 @@ CORS_ORIGINS=https://tu-frontend.netlify.app,https://tu-frontend.vercel.app
 - Cambia `JWT_SECRET` por algo único y seguro
 - Actualiza `CORS_ORIGINS` con la URL de tu frontend cuando lo despliegues
 
+#### **PASO 4.1: Configurar SMTP (Recuperación de contraseña)**
+
+Para que los correos de recuperación lleguen a los usuarios, configurá un proveedor SMTP (SendGrid, Brevo/Sendinblue, Mailgun, etc.). Cualquiera de estos funciona con las mismas variables:
+
+```env
+SMTP_HOST= # p. ej. smtp.sendgrid.net o smtp-relay.sendinblue.com
+SMTP_PORT=587 # 465 si usás TLS estricto (secure)
+SMTP_USER= # usuario/clave API segun proveedor
+SMTP_PASS= # contraseña o API key
+SMTP_SECURE=false # true si usás puerto 465
+FROM_EMAIL=no-reply@tu-dominio.com
+```
+
+Proveedores sugeridos:
+- SendGrid (recomendado, fácil con API Key como SMTP_USER=apikey y SMTP_PASS=<API_KEY>)
+- Brevo/Sendinblue (plan gratis, buen deliverability)
+- Mailgun (estable, requiere dominio verificado)
+
+Pasos generales en el panel del proveedor:
+1) Crear cuenta y verificar tu email.
+2) Si es posible, verificar dominio (mejora deliverability). Opcional para empezar.
+3) Crear una API Key o credenciales SMTP.
+4) Copiar host/puerto/usuario/contraseña.
+5) Ir a Railway → servicio backend → Variables → agregar las variables anteriores.
+
+Guía rápida: SendGrid en 5 minutos
+1) Crear cuenta en https://sendgrid.com
+2) Ir a Settings → API Keys → Create API Key (Full Access o Mail Send).
+3) SMTP en SendGrid usa:
+   - SMTP_HOST = smtp.sendgrid.net
+   - SMTP_PORT = 587
+   - SMTP_USER = apikey
+   - SMTP_PASS = <TU_API_KEY>
+   - SMTP_SECURE = false
+   - FROM_EMAIL = el remitente verificado en SendGrid
+4) Agregar estas variables en Railway (servicio backend) y redeploy automático.
+
+Guía rápida: Brevo (Sendinblue)
+1) Crear cuenta en https://brevo.com
+2) Ir a Transaccional → SMTP & API → Generar SMTP Key.
+3) Usar:
+   - SMTP_HOST = smtp-relay.brevo.com
+   - SMTP_PORT = 587
+   - SMTP_USER = el "SMTP username" que muestra Brevo
+   - SMTP_PASS = la "SMTP key" generada
+   - SMTP_SECURE = false
+   - FROM_EMAIL = dirección validada en Brevo
+
+Cómo probar en Railway (sin tocar código):
+```bash
+# En tu máquina (requiere Railway CLI vinculado al proyecto)
+railway run npm run test-email -- tu-email@ejemplo.com
+```
+Salida esperada:
+- Si falta SMTP: "Envío SIMULADO" (configurá las variables)
+- Si está bien configurado: mostrará un messageId de nodemailer y te llegará el correo
+
+Nota: El backend ya tiene fallback; si SMTP no está configurado, el endpoint /api/auth/recover devolverá el código en la respuesta para no bloquear a los usuarios.
+
 ---
 
 ### **PASO 5: Deploy Inicial**

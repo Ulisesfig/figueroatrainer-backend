@@ -25,8 +25,13 @@ const recoverValidation = [
 
 const resetValidation = [
   body('email').isEmail().withMessage('Email inválido'),
-  body('code').isLength({ min: 4 }).withMessage('Código inválido'),
+  body('code').optional().isLength({ min: 4 }).withMessage('Código inválido'),
   body('password').isLength({ min: 6 }).withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+];
+
+const verifyValidation = [
+  body('email').isEmail().withMessage('Email inválido'),
+  body('code').isLength({ min: 4 }).withMessage('Código inválido')
 ];
 
 // Rutas
@@ -35,6 +40,7 @@ router.post('/login', loginValidation, validate, authController.login);
 router.post('/logout', authController.logout);
 router.post('/recover', recoverValidation, validate, authController.recover);
 router.post('/reset', resetValidation, validate, authController.resetPassword);
+router.post('/verify', verifyValidation, validate, authController.verifyCode);
 router.get('/me', requireAuth, authController.getMe);
 
 module.exports = router;

@@ -285,7 +285,11 @@ const authController = {
       // Enviar email real si está configurado
       let emailSent = false;
       try { 
-        const mailRes = await sendPasswordResetCode(user.email, code);
+        // Timeout de 8 segundos para no bloquear la respuesta
+        const mailRes = await Promise.race([
+          sendPasswordResetCode(user.email, code),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Email timeout')), 8000))
+        ]);
         // nodemailer: accepted array cuando se envía
         emailSent = !!mailRes && !mailRes.simulated && Array.isArray(mailRes.accepted) ? mailRes.accepted.length > 0 : !mailRes?.simulated;
       } catch (e) { 

@@ -221,6 +221,16 @@ const User = {
     const values = [r, id];
     const result = await query(text, values);
     return result.rows[0];
+  },
+
+  // Actualizar contraseña por email
+  updatePasswordByEmail: async (email, hashedPassword) => {
+    const text = `
+      UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2 RETURNING id
+    `;
+    const values = [hashedPassword, email];
+    const result = await query(text, values);
+    return result.rows[0];
   }
 };
 

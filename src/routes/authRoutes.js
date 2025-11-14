@@ -23,11 +23,18 @@ const recoverValidation = [
   body('email').isEmail().withMessage('Email inválido')
 ];
 
+const resetValidation = [
+  body('email').isEmail().withMessage('Email inválido'),
+  body('code').isLength({ min: 4 }).withMessage('Código inválido'),
+  body('password').isLength({ min: 6 }).withMessage('La nueva contraseña debe tener al menos 6 caracteres')
+];
+
 // Rutas
 router.post('/register', registerValidation, validate, authController.register);
 router.post('/login', loginValidation, validate, authController.login);
 router.post('/logout', authController.logout);
 router.post('/recover', recoverValidation, validate, authController.recover);
+router.post('/reset', resetValidation, validate, authController.resetPassword);
 router.get('/me', requireAuth, authController.getMe);
 
 module.exports = router;

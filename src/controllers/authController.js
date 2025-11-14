@@ -2,6 +2,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Almacenamiento temporal en memoria para códigos de recuperación
+// Clave: email, Valor: { code, expiresAt }
+const resetStore = new Map();
+
 const authController = {
   // Registro de usuario
   register: async (req, res) => {
@@ -237,7 +241,7 @@ const authController = {
     }
   },
 
-  // Recuperar contraseña (simulado)
+  // Solicitar recuperación de contraseña: genera un código temporal
   recover: async (req, res) => {
     try {
       const { email } = req.body;
@@ -250,7 +254,7 @@ const authController = {
       }
 
       // Verificar si existe el usuario
-      const user = await User.findByEmail(email);
+      const user = await User.findByEmail(String(email).trim().toLowerCase());
       if (!user) {
         return res.status(404).json({ 
           success: false, 
@@ -258,18 +262,67 @@ const authController = {
         });
       }
 
-      // TODO: Implementar envío de email real
-      // Por ahora solo simulamos
-      res.json({ 
+      // Generar un código de 6 dígitos y expiración de 10 minutos
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min
+      resetStore.set(user.email, { code, expiresAt });
+
+      // En un entorno real: enviar email con el código
+      // Aquí lo registramos en logs para verificación en desarrollo
+      console.log(`[RECOVER] Código para ${user.email}: ${code} (expira en 10 minutos)`);
+
+      const payload = { 
         success: true, 
-        message: 'Te enviamos instrucciones a tu email (simulado)' 
-      });
+        message: 'Te enviamos un código de verificación a tu email. Ingrésalo para restablecer tu contraseña.'
+      };
+
+      // En desarrollo, devolver el código para facilitar pruebas
+      if (process.env.NODE_ENV !== 'production') {
+        payload.devCode = code;
+      }
+
+      res.json(payload);
     } catch (error) {
       console.error('Error en recuperación:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al recuperar contraseña' 
       });
+    }
+  },
+
+  // Restablecer contraseña con código
+  resetPassword: async (req, res) => {
+    try {
+      const { email, code, password } = req.body;
+      if (!email || !code || !password) {
+        return res.status(400).json({ success: false, message: 'Email, código y nueva contraseña son requeridos' });
+      }
+
+      const emailNorm = String(email).trim().toLowerCase();
+      const entry = resetStore.get(emailNorm);
+      if (!entry) {
+        return res.status(400).json({ success: false, message: 'Solicitá antes la recuperación' });
+      }
+      if (Date.now() > entry.expiresAt) {
+        resetStore.delete(emailNorm);
+        return res.status(400).json({ success: false, message: 'El código expiró. Volvé a solicitarlo.' });
+      }
+      if (String(code).trim() !== entry.code) {
+        return res.status(400).json({ success: false, message: 'Código inválido' });
+      }
+
+      // Actualizar contraseña
+      const hashed = await bcrypt.hash(String(password), 10);
+      await User.updatePasswordByEmail(emailNorm, hashed);
+
+      // Invalidar código
+      resetStore.delete(emailNorm);
+
+      res.json({ success: true, message: 'Contraseña actualizada correctamente. Ya podés iniciar sesión.' });
+    } catch (error) {
+      console.error('Error en resetPassword:', error);
+      res.status(500).json({ success: false, message: 'Error al restablecer contraseña' });
     }
   },
 

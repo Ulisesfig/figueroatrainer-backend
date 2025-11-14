@@ -1,69 +1,67 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-// Crea un transport configurable por variables de entorno
-// SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE (true/false), FROM_EMAIL
-function createTransport() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const secure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
-
-  if (!host || !user || !pass) {
-    console.error('❌ SMTP NO CONFIGURADO - Faltan variables de entorno:');
-    console.error('SMTP_HOST:', host ? '✓' : '✗ FALTA');
-    console.error('SMTP_USER:', user ? '✓' : '✗ FALTA');
-    console.error('SMTP_PASS:', pass ? '✓' : '✗ FALTA');
-    console.error('Configura estas variables en Railway para enviar emails.');
-    return null;
-  }
-
-  console.log('✓ SMTP configurado:', { host, port, user: user.substring(0, 3) + '***', secure });
-
-  return nodemailer.createTransport({ 
-    host, 
-    port, 
-    secure, 
-    auth: { user, pass },
-    connectionTimeout: 30000, // 30 segundos
-    greetingTimeout: 30000,   // 30 segundos
-    socketTimeout: 45000      // 45 segundos para enviar
-  });
-}
+/**
+ * Envía código de recuperación usando SendGrid API HTTP
+ * Usa SENDGRID_API_KEY en lugar de SMTP que puede ser bloqueado por firewalls
+ */
 
 async function sendPasswordResetCode(toEmail, code) {
-  const transport = createTransport();
-  const from = process.env.FROM_EMAIL || 'no-reply@figueroatrainer.com';
+  const apiKey = process.env.SENDGRID_API_KEY || process.env.SMTP_PASS;
+  const from = process.env.FROM_EMAIL || 'info@figueroatrainer.com';
 
-  const subject = 'Código de recuperación - Figueroa Trainer';
-  const html = `
-    <div style="font-family: Arial, sans-serif;">
-      <h2>Recuperación de contraseña</h2>
-      <p>Usá el siguiente código para restablecer tu contraseña. Es válido por 10 minutos.</p>
-      <p style="font-size: 22px; letter-spacing: 2px; font-weight: bold;">${code}</p>
-      <p>Si no solicitaste este código, podés ignorar este email.</p>
-    </div>
-  `;
-  const text = `Tu código de recuperación es: ${code}. Vence en 10 minutos.`;
-
-  if (!transport) {
-    // Entorno sin SMTP: loguear como fallback para desarrollo
-    console.log(`[MAILER] ⚠️ Envío simulado a ${toEmail}: ${text}`);
-    console.log('[MAILER] RAZÓN: Variables SMTP no configuradas en Railway');
+  if (!apiKey) {
+    console.error('❌ SENDGRID_API_KEY no configurado');
+    console.error('Configura SENDGRID_API_KEY en Railway con tu API Key de SendGrid');
+    console.log(`[MAILER] ⚠️ Envío simulado a ${toEmail}: código ${code}`);
     return { simulated: true };
   }
 
+  // Configurar SendGrid
+  sgMail.setApiKey(apiKey);
+
+  const subject = 'Código de recuperación - Figueroa Trainer';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Recuperación de contraseña</h2>
+      <p>Usá el siguiente código para restablecer tu contraseña. Es válido por 10 minutos.</p>
+      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+        <p style="font-size: 32px; letter-spacing: 4px; font-weight: bold; color: #000; margin: 0;">${code}</p>
+      </div>
+      <p style="color: #666;">Si no solicitaste este código, podés ignorar este email.</p>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+      <p style="font-size: 12px; color: #999;">Figueroa Trainer - Tu entrenamiento personalizado</p>
+    </div>
+  `;
+  const text = `Tu código de recuperación es: ${code}. Vence en 10 minutos. Si no solicitaste este código, podés ignorar este email.`;
+
+  const msg = {
+    to: toEmail,
+    from: from,
+    subject: subject,
+    text: text,
+    html: html,
+  };
+
   try {
-    const info = await transport.sendMail({ from, to: toEmail, subject, text, html });
-    console.log('✉️ Email enviado exitosamente a:', toEmail);
-    console.log('   Message ID:', info.messageId);
-    console.log('   Accepted:', info.accepted);
-    return info;
+    console.log('📧 Enviando email vía SendGrid API a:', toEmail);
+    const response = await sgMail.send(msg);
+    console.log('✅ Email enviado exitosamente!');
+    console.log('   Destinatario:', toEmail);
+    console.log('   Status Code:', response[0].statusCode);
+    console.log('   Message ID:', response[0].headers['x-message-id']);
+    return {
+      success: true,
+      statusCode: response[0].statusCode,
+      messageId: response[0].headers['x-message-id'],
+      accepted: [toEmail]
+    };
   } catch (error) {
-    console.error('❌ Error al enviar email a:', toEmail);
+    console.error('❌ Error al enviar email via SendGrid API:');
+    console.error('   Destinatario:', toEmail);
     console.error('   Error:', error.message);
-    console.error('   Code:', error.code);
-    console.error('   Response:', error.response);
+    if (error.response) {
+      console.error('   Response Body:', JSON.stringify(error.response.body, null, 2));
+    }
     throw error;
   }
 }

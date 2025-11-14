@@ -277,34 +277,27 @@ const authController = {
       // Aquí lo registramos en logs para verificación en desarrollo
       console.log(`[RECOVER] Código para ${user.email}: ${code} (expira en 10 minutos)`);
 
+      // Responder inmediatamente al usuario sin esperar el email
       const payload = { 
         success: true, 
-        message: 'Te enviamos un código de verificación a tu email. Ingrésalo para restablecer tu contraseña.'
+        message: 'Te enviamos un código de verificación a tu email. Si no lo recibís en 1-2 minutos, verificá spam o solicitá uno nuevo.'
       };
-
-      // Enviar email real si está configurado (en segundo plano, sin bloquear)
-      let emailSent = false;
-      try { 
-        // Timeout de 8 segundos para no bloquear la respuesta
-        const mailRes = await Promise.race([
-          sendPasswordResetCode(user.email, code),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Email timeout')), 8000))
-        ]);
-        // nodemailer: accepted array cuando se envía
-        emailSent = !!mailRes && !mailRes.simulated && Array.isArray(mailRes.accepted) ? mailRes.accepted.length > 0 : !mailRes?.simulated;
-      } catch (e) { 
-        console.warn('Mailer error:', e.message); 
-        emailSent = false; 
-      }
-
-      // Siempre devolver success para permitir que el usuario continúe
-      // Si el email falló, se informa pero no se bloquea el flujo
-      payload.emailSent = emailSent;
-      if (!emailSent) {
-        payload.message = 'Código generado. Si no recibís el email, verificá tu casilla de spam o solicitá uno nuevo.';
-      }
-
       res.json(payload);
+
+      // Enviar email en segundo plano (no bloqueante)
+      sendPasswordResetCode(user.email, code)
+        .then((mailRes) => {
+          const emailSent = !!mailRes && !mailRes.simulated && Array.isArray(mailRes.accepted) && mailRes.accepted.length > 0;
+          console.log('📧 Email enviado exitosamente a:', user.email);
+          console.log('   Message ID:', mailRes?.messageId);
+          console.log('   Accepted:', mailRes?.accepted);
+        })
+        .catch((e) => {
+          console.error('❌ Error al enviar email de recuperación a:', user.email);
+          console.error('   Error:', e.message);
+          console.error('   Código generado:', code);
+          console.error('   El usuario puede seguir usando el código aunque el email falle');
+        });
     } catch (error) {
       console.error('Error en recuperación:', error);
       res.status(500).json({ 

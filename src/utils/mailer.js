@@ -10,18 +10,24 @@ function createTransport() {
   const secure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
 
   if (!host || !user || !pass) {
-    console.warn('⚠️ SMTP no configurado. Los emails no se enviarán en producción.');
+    console.error('❌ SMTP NO CONFIGURADO - Faltan variables de entorno:');
+    console.error('SMTP_HOST:', host ? '✓' : '✗ FALTA');
+    console.error('SMTP_USER:', user ? '✓' : '✗ FALTA');
+    console.error('SMTP_PASS:', pass ? '✓' : '✗ FALTA');
+    console.error('Configura estas variables en Railway para enviar emails.');
     return null;
   }
+
+  console.log('✓ SMTP configurado:', { host, port, user: user.substring(0, 3) + '***', secure });
 
   return nodemailer.createTransport({ 
     host, 
     port, 
     secure, 
     auth: { user, pass },
-    connectionTimeout: 10000, // 10 segundos
-    greetingTimeout: 10000,
-    socketTimeout: 15000 // 15 segundos para enviar
+    connectionTimeout: 30000, // 30 segundos
+    greetingTimeout: 30000,   // 30 segundos
+    socketTimeout: 45000      // 45 segundos para enviar
   });
 }
 
@@ -42,13 +48,24 @@ async function sendPasswordResetCode(toEmail, code) {
 
   if (!transport) {
     // Entorno sin SMTP: loguear como fallback para desarrollo
-    console.log(`[MAILER] Envío simulado a ${toEmail}: ${text}`);
+    console.log(`[MAILER] ⚠️ Envío simulado a ${toEmail}: ${text}`);
+    console.log('[MAILER] RAZÓN: Variables SMTP no configuradas en Railway');
     return { simulated: true };
   }
 
-  const info = await transport.sendMail({ from, to: toEmail, subject, text, html });
-  console.log('✉️ Email enviado:', info.messageId);
-  return info;
+  try {
+    const info = await transport.sendMail({ from, to: toEmail, subject, text, html });
+    console.log('✉️ Email enviado exitosamente a:', toEmail);
+    console.log('   Message ID:', info.messageId);
+    console.log('   Accepted:', info.accepted);
+    return info;
+  } catch (error) {
+    console.error('❌ Error al enviar email a:', toEmail);
+    console.error('   Error:', error.message);
+    console.error('   Code:', error.code);
+    console.error('   Response:', error.response);
+    throw error;
+  }
 }
 
 module.exports = { sendPasswordResetCode };

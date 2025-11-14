@@ -282,11 +282,25 @@ const authController = {
         message: 'Te enviamos un código de verificación a tu email. Ingrésalo para restablecer tu contraseña.'
       };
 
+      // Enviar email real si está configurado
+      let emailSent = false;
+      try { 
+        const mailRes = await sendPasswordResetCode(user.email, code);
+        // nodemailer: accepted array cuando se envía
+        emailSent = !!mailRes && !mailRes.simulated && Array.isArray(mailRes.accepted) ? mailRes.accepted.length > 0 : !mailRes?.simulated;
+      } catch (e) { 
+        console.warn('Mailer error:', e.message); 
+        emailSent = false; 
+      }
+
       // En desarrollo, devolver el código para facilitar pruebas
       if (process.env.NODE_ENV !== 'production') payload.devCode = code;
-
-      // Enviar email real si está configurado
-      try { await sendPasswordResetCode(user.email, code); } catch (e) { console.warn('Mailer error:', e.message); }
+      // Si no se pudo enviar correo (SMTP no configurado o error), exponer el código para que el usuario pueda continuar
+      if (!emailSent) {
+        payload.devCode = code; // forzar visibilidad del código
+        payload.emailSimulated = true;
+        payload.message = 'No pudimos enviar el correo ahora. Usá este código para verificar y continuar.';
+      }
 
       res.json(payload);
     } catch (error) {

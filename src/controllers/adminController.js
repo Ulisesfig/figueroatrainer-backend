@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const UserExercise = require('../models/UserExercise');
 
 const adminController = {
   // Estadísticas básicas
@@ -169,6 +170,83 @@ const adminController = {
       }
     } catch (error) {
       console.error('Error en setUserRole:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Obtener ejercicios de un usuario específico
+  getUserExercises: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      if (Number.isNaN(userId)) {
+        return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
+      }
+
+      const exercises = await UserExercise.findByUserId(userId);
+      res.json({
+        success: true,
+        exercises: exercises || []
+      });
+    } catch (error) {
+      console.error('Error obteniendo ejercicios del usuario:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Actualizar peso de un ejercicio de un usuario
+  updateUserExerciseWeight: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      const exerciseId = req.params.exerciseId;
+      const { weight } = req.body;
+
+      if (Number.isNaN(userId)) {
+        return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
+      }
+
+      if (!exerciseId || weight === undefined) {
+        return res.status(400).json({ success: false, message: 'exerciseId y weight son requeridos' });
+      }
+
+      const exercise = await UserExercise.updateWeight(userId, exerciseId, parseFloat(weight));
+
+      if (!exercise) {
+        return res.status(404).json({ success: false, message: 'Ejercicio no encontrado' });
+      }
+
+      res.json({
+        success: true,
+        exercise,
+        message: 'Peso actualizado correctamente'
+      });
+    } catch (error) {
+      console.error('Error actualizando peso:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Eliminar ejercicio de un usuario
+  deleteUserExercise: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      const exerciseId = req.params.exerciseId;
+
+      if (Number.isNaN(userId)) {
+        return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
+      }
+
+      if (!exerciseId) {
+        return res.status(400).json({ success: false, message: 'exerciseId requerido' });
+      }
+
+      await UserExercise.delete(userId, exerciseId);
+
+      res.json({
+        success: true,
+        message: 'Ejercicio eliminado correctamente'
+      });
+    } catch (error) {
+      console.error('Error eliminando ejercicio:', error);
       res.status(500).json({ success: false, message: 'Error del servidor' });
     }
   }

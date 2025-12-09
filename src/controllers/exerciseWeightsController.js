@@ -18,7 +18,8 @@ const exerciseController = {
       console.error('Error al obtener ejercicios:', error);
       res.status(500).json({
         success: false,
-        message: 'Error al obtener ejercicios'
+        message: 'Error al obtener ejercicios',
+        error: error.message
       });
     }
   },
@@ -59,7 +60,8 @@ const exerciseController = {
       console.error('Error al guardar ejercicio:', error);
       res.status(500).json({
         success: false,
-        message: 'Error al guardar ejercicio'
+        message: 'Error al guardar ejercicio',
+        error: error.message
       });
     }
   },
@@ -88,7 +90,8 @@ const exerciseController = {
       console.error('Error al eliminar ejercicio:', error);
       res.status(500).json({
         success: false,
-        message: 'Error al eliminar ejercicio'
+        message: 'Error al eliminar ejercicio',
+        error: error.message
       });
     }
   },
@@ -129,7 +132,8 @@ const exerciseController = {
       console.error('Error al actualizar peso:', error);
       res.status(500).json({
         success: false,
-        message: 'Error al actualizar peso'
+        message: 'Error al actualizar peso',
+        error: error.message
       });
     }
   }

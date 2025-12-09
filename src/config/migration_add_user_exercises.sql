@@ -5,9 +5,22 @@ CREATE TABLE IF NOT EXISTS user_exercises (
   exercise_id VARCHAR(100) NOT NULL,
   exercise_name VARCHAR(100) NOT NULL,
   weight DECIMAL(6, 2) DEFAULT 0,
+  previous_weight DECIMAL(6, 2) DEFAULT NULL,
+  weight_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, exercise_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_exercises_user_id ON user_exercises(user_id);
+
+-- Agregar columnas si la tabla ya existe
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='previous_weight') THEN
+    ALTER TABLE user_exercises ADD COLUMN previous_weight DECIMAL(6, 2) DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='weight_updated_at') THEN
+    ALTER TABLE user_exercises ADD COLUMN weight_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+  END IF;
+END $$;

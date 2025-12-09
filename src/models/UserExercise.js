@@ -4,7 +4,7 @@ const UserExercise = {
   // Obtener todos los ejercicios del usuario
   findByUserId: async (userId) => {
     const text = `
-      SELECT id, user_id, exercise_id, exercise_name, weight, created_at, updated_at
+      SELECT id, user_id, exercise_id, exercise_name, weight, previous_weight, weight_updated_at, created_at, updated_at
       FROM user_exercises
       WHERE user_id = $1
       ORDER BY created_at ASC
@@ -16,11 +16,15 @@ const UserExercise = {
   // Guardar o actualizar ejercicio
   upsert: async ({ userId, exerciseId, exerciseName, weight }) => {
     const text = `
-      INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, updated_at)
-      VALUES ($1, $2, $3, $4, NOW())
+      INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, weight_updated_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
       ON CONFLICT (user_id, exercise_id) 
-      DO UPDATE SET weight = $4, updated_at = NOW()
-      RETURNING id, user_id, exercise_id, exercise_name, weight, updated_at
+      DO UPDATE SET 
+        previous_weight = user_exercises.weight,
+        weight = $4, 
+        weight_updated_at = NOW(),
+        updated_at = NOW()
+      RETURNING id, user_id, exercise_id, exercise_name, weight, previous_weight, weight_updated_at, updated_at
     `;
     const values = [userId, exerciseId, exerciseName, weight];
     const res = await query(text, values);
@@ -30,9 +34,9 @@ const UserExercise = {
   // Crear nuevo ejercicio
   create: async ({ userId, exerciseId, exerciseName, weight = 0 }) => {
     const text = `
-      INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, user_id, exercise_id, exercise_name, weight, created_at, updated_at
+      INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, weight_updated_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      RETURNING id, user_id, exercise_id, exercise_name, weight, previous_weight, weight_updated_at, created_at, updated_at
     `;
     const values = [userId, exerciseId, exerciseName, weight];
     const res = await query(text, values);
@@ -50,13 +54,16 @@ const UserExercise = {
     return res.rows[0];
   },
 
-  // Actualizar peso de un ejercicio
+  // Actualizar peso de un ejercicio (guarda el peso anterior)
   updateWeight: async (userId, exerciseId, weight) => {
     const text = `
       UPDATE user_exercises
-      SET weight = $3, updated_at = NOW()
+      SET previous_weight = weight,
+          weight = $3, 
+          weight_updated_at = NOW(),
+          updated_at = NOW()
       WHERE user_id = $1 AND exercise_id = $2
-      RETURNING id, user_id, exercise_id, exercise_name, weight, updated_at
+      RETURNING id, user_id, exercise_id, exercise_name, weight, previous_weight, weight_updated_at, updated_at
     `;
     const res = await query(text, [userId, exerciseId, weight]);
     return res.rows[0];

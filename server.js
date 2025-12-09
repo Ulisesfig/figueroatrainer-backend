@@ -15,6 +15,7 @@ const helmet = require('helmet');
 
 // Importar configuración de base de datos
 const { testConnection } = require('./src/config/database');
+const { runMigrations } = require('./src/utils/runMigrations');
 
 // Importar rutas
 const authRoutes = require('./src/routes/authRoutes');
@@ -112,6 +113,9 @@ const startServer = async () => {
     
     if (!dbConnected) {
       console.warn('⚠️  Servidor iniciado sin conexión a la base de datos');
+    } else {
+      // Ejecutar migraciones automáticamente si la BD está conectada
+      await runMigrations();
     }
 
     app.listen(port, () => {

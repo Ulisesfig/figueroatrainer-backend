@@ -101,6 +101,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug: verificar si tabla user_exercises existe
+app.get('/api/debug/check-tables', async (req, res) => {
+  try {
+    const { query } = require('./src/config/database');
+    const result = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'user_exercises'
+    `);
+    
+    res.json({
+      success: true,
+      tableExists: result.rows.length > 0,
+      message: result.rows.length > 0 ? 'Tabla user_exercises existe' : 'Tabla user_exercises NO existe',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Middleware de manejo de errores (debe ir al final)
 app.use(notFound);
 app.use(errorHandler);

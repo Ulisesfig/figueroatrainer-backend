@@ -19,13 +19,14 @@ async function runMigrations() {
   
   for (const migration of migrations) {
     try {
-      const sqlPath = path.join(__dirname, migration);
+      const sqlPath = path.join(__dirname, '..', 'config', migration);
       if (!fs.existsSync(sqlPath)) {
-        console.log(`⏭️  Omitiendo ${migration} (no existe)`);
+        console.log(`⏭️  Omitiendo ${migration} (no existe en ${sqlPath})`);
         continue;
       }
       
       const sql = fs.readFileSync(sqlPath, 'utf8');
+      console.log(`⏳ Ejecutando ${migration}...`);
       await query(sql);
       console.log(`✅ Migración aplicada: ${migration}`);
     } catch (error) {
@@ -33,7 +34,7 @@ async function runMigrations() {
       if (error.code === '42P07' || error.message.includes('already exists')) {
         console.log(`ℹ️  ${migration} ya existe, omitiendo`);
       } else {
-        console.error(`❌ Error en ${migration}:`, error.message);
+        console.error(`❌ Error en ${migration}:`, error.code, error.message);
       }
     }
   }

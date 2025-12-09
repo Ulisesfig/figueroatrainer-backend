@@ -1,7 +1,7 @@
 // Script para ejecutar migraciones automáticamente
 const fs = require('fs');
 const path = require('path');
-const { query } = require('./database');
+const { query } = require('../config/database');
 
 const migrations = [
   'migration_add_exercises.sql',

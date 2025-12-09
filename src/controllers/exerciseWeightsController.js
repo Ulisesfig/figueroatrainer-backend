@@ -31,9 +31,12 @@ const exerciseController = {
         return res.status(401).json({ success: false, message: 'No autenticado' });
       }
 
-      const { exerciseId, exerciseName, weight } = req.body;
+      // Soportar tanto camelCase como snake_case desde el frontend
+      const { exerciseId, exerciseName, exercise_id, exercise_name, weight } = req.body;
+      const finalExerciseId = exerciseId || exercise_id;
+      const finalExerciseName = exerciseName || exercise_name;
       
-      if (!exerciseId || !exerciseName) {
+      if (!finalExerciseId || !finalExerciseName) {
         return res.status(400).json({
           success: false,
           message: 'exerciseId y exerciseName son requeridos'
@@ -42,8 +45,8 @@ const exerciseController = {
 
       const exercise = await UserExercise.upsert({
         userId,
-        exerciseId: String(exerciseId).trim(),
-        exerciseName: String(exerciseName).trim(),
+        exerciseId: String(finalExerciseId).trim(),
+        exerciseName: String(finalExerciseName).trim(),
         weight: parseFloat(weight) || 0
       });
 

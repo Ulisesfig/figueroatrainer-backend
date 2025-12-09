@@ -23,6 +23,7 @@ const contactRoutes = require('./src/routes/contactRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const planRoutes = require('./src/routes/planRoutes');
 const exerciseRoutes = require('./src/routes/exerciseRoutes');
+const exerciseWeightsRoutes = require('./src/routes/exerciseWeightsRoutes');
 
 // Importar middleware
 const { requireAuth } = require('./src/middleware/auth');
@@ -82,6 +83,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/plans', planRoutes);
 app.use('/api/admin/exercises', exerciseRoutes);
+app.use('/api', exerciseWeightsRoutes);
 
 // Proteger dashboard (solo usuarios logueados)
 app.get('/pages/dashboard.html', requireAuth, (req, res) => {

@@ -12,11 +12,11 @@ router.post(
   requireAdmin,
   [
     body('name').isString().trim().notEmpty().withMessage('Nombre del ejercicio requerido'),
-    body('sets').optional({ nullable: true }).isInt({ min: 1, max: 20 }).withMessage('Series debe ser entre 1 y 20'),
-    body('reps').optional({ nullable: true }).isInt({ min: 1, max: 100 }).withMessage('Repeticiones debe ser entre 1 y 100'),
-    body('notes').optional().isString().trim(),
-    body('youtube_url').optional().isURL().withMessage('URL de YouTube inválida'),
-    body('suggested_weight').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Peso debe ser un número positivo')
+    body('sets').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1, max: 20 }).withMessage('Series debe ser entre 1 y 20'),
+    body('reps').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1, max: 100 }).withMessage('Repeticiones debe ser entre 1 y 100'),
+    body('notes').optional({ nullable: true, checkFalsy: true }).isString().trim(),
+    body('youtube_url').optional({ nullable: true, checkFalsy: true }).isURL().withMessage('URL de YouTube inválida'),
+    body('suggested_weight').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Peso debe ser un número positivo')
   ],
   validate,
   exerciseController.create
@@ -28,11 +28,11 @@ router.get('/:id', requireAuth, requireAdmin, exerciseController.getById);
 
 const updateValidation = [
   body('name').isString().trim().notEmpty().withMessage('Nombre del ejercicio requerido'),
-  body('sets').optional({ nullable: true }).isInt({ min: 1, max: 20 }).withMessage('Series debe ser entre 1 y 20'),
-  body('reps').optional({ nullable: true }).isInt({ min: 1, max: 100 }).withMessage('Repeticiones debe ser entre 1 y 100'),
-  body('notes').optional().isString().trim(),
-  body('youtube_url').optional().isURL().withMessage('URL de YouTube inválida'),
-  body('suggested_weight').optional({ nullable: true }).isFloat({ min: 0 }).withMessage('Peso debe ser un número positivo')
+  body('sets').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1, max: 20 }).withMessage('Series debe ser entre 1 y 20'),
+  body('reps').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1, max: 100 }).withMessage('Repeticiones debe ser entre 1 y 100'),
+  body('notes').optional({ nullable: true, checkFalsy: true }).isString().trim(),
+  body('youtube_url').optional({ nullable: true, checkFalsy: true }).isURL().withMessage('URL de YouTube inválida'),
+  body('suggested_weight').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Peso debe ser un número positivo')
 ];
 
 router.patch(

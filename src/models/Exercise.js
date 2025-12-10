@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const Exercise = {
   // Crear un nuevo ejercicio
   create: async (exerciseData) => {
-    const { name, sets, reps, notes, youtube_url, created_by } = exerciseData;
+    const { name, sets, reps, notes, youtube_url, suggested_weight, created_by } = exerciseData;
     const text = `
-      INSERT INTO exercises (name, sets, reps, notes, youtube_url, created_by) 
-      VALUES ($1, $2, $3, $4, $5, $6) 
-      RETURNING id, name, sets, reps, notes, youtube_url, created_by, created_at, updated_at
+      INSERT INTO exercises (name, sets, reps, notes, youtube_url, suggested_weight, created_by) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7) 
+      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, created_by, created_at, updated_at
     `;
-    const values = [name, sets, reps, notes || null, youtube_url || null, created_by || null];
+    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, created_by || null];
     const result = await query(text, values);
     return result.rows[0];
   },
@@ -63,14 +63,14 @@ const Exercise = {
 
   // Actualizar ejercicio
   update: async (id, exerciseData) => {
-    const { name, sets, reps, notes, youtube_url } = exerciseData;
+    const { name, sets, reps, notes, youtube_url, suggested_weight } = exerciseData;
     const text = `
       UPDATE exercises 
-      SET name = $1, sets = $2, reps = $3, notes = $4, youtube_url = $5, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
-      RETURNING id, name, sets, reps, notes, youtube_url, created_by, created_at, updated_at
+      SET name = $1, sets = $2, reps = $3, notes = $4, youtube_url = $5, suggested_weight = $6, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7
+      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, created_by, created_at, updated_at
     `;
-    const values = [name, sets, reps, notes || null, youtube_url || null, id];
+    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, id];
     const result = await query(text, values);
     return result.rows[0];
   },

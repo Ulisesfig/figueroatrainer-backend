@@ -24,7 +24,8 @@ router.post(
 
 router.get('/', requireAuth, requireAdmin, exerciseController.list);
 router.get('/search', requireAuth, requireAdmin, exerciseController.search);
-router.get('/:id', requireAuth, requireAdmin, exerciseController.getById);
+// Endpoint para obtener ejercicio por ID (solo requiere auth, no admin) - usado para cargar variantes en dashboard
+router.get('/:id', requireAuth, exerciseController.getById);
 
 const updateValidation = [
   body('name').isString().trim().notEmpty().withMessage('Nombre del ejercicio requerido'),

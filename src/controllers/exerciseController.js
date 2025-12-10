@@ -4,24 +4,24 @@ const exerciseController = {
   // Crear nuevo ejercicio
   create: async (req, res) => {
     try {
-      const { name, sets, reps, notes, youtube_url } = req.body;
+      const { name, sets, reps, notes, youtube_url, suggested_weight } = req.body;
 
-      // Validaciones
-      if (!name || !sets || !reps) {
+      // Validaciones - solo nombre es obligatorio
+      if (!name) {
         return res.status(400).json({
           success: false,
-          message: 'Nombre, series y repeticiones son obligatorios'
+          message: 'El nombre del ejercicio es obligatorio'
         });
       }
 
-      if (sets < 1 || sets > 20) {
+      if (sets !== null && sets !== undefined && (sets < 1 || sets > 20)) {
         return res.status(400).json({
           success: false,
           message: 'Las series deben estar entre 1 y 20'
         });
       }
 
-      if (reps < 1 || reps > 100) {
+      if (reps !== null && reps !== undefined && (reps < 1 || reps > 100)) {
         return res.status(400).json({
           success: false,
           message: 'Las repeticiones deben estar entre 1 y 100'
@@ -41,10 +41,11 @@ const exerciseController = {
 
       const exerciseData = {
         name: name.trim(),
-        sets: parseInt(sets, 10),
-        reps: parseInt(reps, 10),
+        sets: sets ? parseInt(sets, 10) : null,
+        reps: reps ? parseInt(reps, 10) : null,
         notes: notes ? notes.trim() : null,
         youtube_url: youtube_url ? youtube_url.trim() : null,
+        suggested_weight: suggested_weight ? parseFloat(suggested_weight) : null,
         created_by: req.user?.id || null
       };
 
@@ -151,7 +152,7 @@ const exerciseController = {
   update: async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, sets, reps, notes, youtube_url } = req.body;
+      const { name, sets, reps, notes, youtube_url, suggested_weight } = req.body;
 
       // Verificar que existe
       const existing = await Exercise.findById(id);
@@ -162,11 +163,11 @@ const exerciseController = {
         });
       }
 
-      // Validaciones
-      if (!name || !sets || !reps) {
+      // Validaciones - solo nombre es obligatorio
+      if (!name) {
         return res.status(400).json({
           success: false,
-          message: 'Nombre, series y repeticiones son obligatorios'
+          message: 'El nombre del ejercicio es obligatorio'
         });
       }
 
@@ -182,10 +183,11 @@ const exerciseController = {
 
       const exerciseData = {
         name: name.trim(),
-        sets: parseInt(sets, 10),
-        reps: parseInt(reps, 10),
+        sets: sets ? parseInt(sets, 10) : null,
+        reps: reps ? parseInt(reps, 10) : null,
         notes: notes ? notes.trim() : null,
-        youtube_url: youtube_url ? youtube_url.trim() : null
+        youtube_url: youtube_url ? youtube_url.trim() : null,
+        suggested_weight: suggested_weight ? parseFloat(suggested_weight) : null
       };
 
       const exercise = await Exercise.update(id, exerciseData);

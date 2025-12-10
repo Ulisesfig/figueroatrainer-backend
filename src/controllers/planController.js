@@ -31,15 +31,30 @@ const planController = {
         // Normalizar estructura de days
         const safeDays = days.map((d, idx) => ({
           day: d?.day || idx + 1,
-          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => ({
-            id: ex?.id ?? ex?.exercise_id ?? null,
-            name: ex?.name || '',
-            sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
-            reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
-            suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
-            notes: ex?.notes || ex?.observations || null,
-            youtube_url: ex?.youtube_url || ex?.youtube || null
-          })) : []
+          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => {
+            const exercise = {
+              id: ex?.id ?? ex?.exercise_id ?? null,
+              name: ex?.name || '',
+              sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
+              reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+              suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
+              notes: ex?.notes || ex?.observations || null,
+              youtube_url: ex?.youtube_url || ex?.youtube || null
+            };
+            // Incluir variante si existe
+            if (ex?.variant && ex.variant.name && ex.variant.youtube_url) {
+              exercise.variant = {
+                id: ex.variant.id ?? null,
+                name: ex.variant.name,
+                youtube_url: ex.variant.youtube_url,
+                sets: ex.variant.sets != null ? parseInt(ex.variant.sets, 10) : null,
+                reps: ex.variant.reps != null ? parseInt(ex.variant.reps, 10) : null,
+                notes: ex.variant.notes || null,
+                suggested_weight: ex.variant.suggested_weight != null ? parseFloat(ex.variant.suggested_weight) : null
+              };
+            }
+            return exercise;
+          }) : []
         }));
         contentJson = { days: safeDays };
         // Fallback texto para compatibilidad
@@ -153,15 +168,30 @@ const planController = {
       if ((!content || typeof content !== 'string' || !content.trim()) && Array.isArray(days)) {
         const safeDays = days.map((d, idx) => ({
           day: d?.day || idx + 1,
-          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => ({
-            id: ex?.id ?? ex?.exercise_id ?? null,
-            name: ex?.name || '',
-            sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
-            reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
-            suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
-            notes: ex?.notes || ex?.observations || null,
-            youtube_url: ex?.youtube_url || ex?.youtube || null
-          })) : []
+          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => {
+            const exercise = {
+              id: ex?.id ?? ex?.exercise_id ?? null,
+              name: ex?.name || '',
+              sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
+              reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+              suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
+              notes: ex?.notes || ex?.observations || null,
+              youtube_url: ex?.youtube_url || ex?.youtube || null
+            };
+            // Incluir variante si existe
+            if (ex?.variant && ex.variant.name && ex.variant.youtube_url) {
+              exercise.variant = {
+                id: ex.variant.id ?? null,
+                name: ex.variant.name,
+                youtube_url: ex.variant.youtube_url,
+                sets: ex.variant.sets != null ? parseInt(ex.variant.sets, 10) : null,
+                reps: ex.variant.reps != null ? parseInt(ex.variant.reps, 10) : null,
+                notes: ex.variant.notes || null,
+                suggested_weight: ex.variant.suggested_weight != null ? parseFloat(ex.variant.suggested_weight) : null
+              };
+            }
+            return exercise;
+          }) : []
         }));
         contentJson = { days: safeDays };
         contentText = safeDays.map(d => {

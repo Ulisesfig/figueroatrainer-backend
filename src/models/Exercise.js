@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const Exercise = {
   // Crear un nuevo ejercicio
   create: async (exerciseData) => {
-    const { name, sets, reps, notes, youtube_url, suggested_weight, created_by } = exerciseData;
+    const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by } = exerciseData;
     const text = `
-      INSERT INTO exercises (name, sets, reps, notes, youtube_url, suggested_weight, created_by) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) 
-      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, created_by, created_at, updated_at
+      INSERT INTO exercises (name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by, created_at, updated_at
     `;
-    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, created_by || null];
+    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, variant_exercise_id || null, created_by || null];
     const result = await query(text, values);
     return result.rows[0];
   },
@@ -18,9 +18,13 @@ const Exercise = {
   findAll: async (page = 1, limit = 100) => {
     const offset = (page - 1) * limit;
     const text = `
-      SELECT e.*, u.name as creator_name, u.surname as creator_surname
+      SELECT e.*, 
+             u.name as creator_name, u.surname as creator_surname,
+             v.id as variant_id, v.name as variant_name, v.sets as variant_sets, v.reps as variant_reps,
+             v.notes as variant_notes, v.youtube_url as variant_youtube_url, v.suggested_weight as variant_suggested_weight
       FROM exercises e
       LEFT JOIN users u ON e.created_by = u.id
+      LEFT JOIN exercises v ON e.variant_exercise_id = v.id
       ORDER BY e.created_at DESC
       LIMIT $1 OFFSET $2
     `;
@@ -38,9 +42,13 @@ const Exercise = {
   // Buscar ejercicio por ID
   findById: async (id) => {
     const text = `
-      SELECT e.*, u.name as creator_name, u.surname as creator_surname
+      SELECT e.*, 
+             u.name as creator_name, u.surname as creator_surname,
+             v.id as variant_id, v.name as variant_name, v.sets as variant_sets, v.reps as variant_reps,
+             v.notes as variant_notes, v.youtube_url as variant_youtube_url, v.suggested_weight as variant_suggested_weight
       FROM exercises e
       LEFT JOIN users u ON e.created_by = u.id
+      LEFT JOIN exercises v ON e.variant_exercise_id = v.id
       WHERE e.id = $1
     `;
     const result = await query(text, [id]);
@@ -63,14 +71,14 @@ const Exercise = {
 
   // Actualizar ejercicio
   update: async (id, exerciseData) => {
-    const { name, sets, reps, notes, youtube_url, suggested_weight } = exerciseData;
+    const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = exerciseData;
     const text = `
       UPDATE exercises 
-      SET name = $1, sets = $2, reps = $3, notes = $4, youtube_url = $5, suggested_weight = $6, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
-      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, created_by, created_at, updated_at
+      SET name = $1, sets = $2, reps = $3, notes = $4, youtube_url = $5, suggested_weight = $6, variant_exercise_id = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8
+      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by, created_at, updated_at
     `;
-    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, id];
+    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, variant_exercise_id || null, id];
     const result = await query(text, values);
     return result.rows[0];
   },

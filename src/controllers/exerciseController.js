@@ -4,7 +4,7 @@ const exerciseController = {
   // Crear nuevo ejercicio
   create: async (req, res) => {
     try {
-      const { name, sets, reps, notes, youtube_url, suggested_weight } = req.body;
+      const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = req.body;
 
       // Validaciones - solo nombre es obligatorio
       if (!name) {
@@ -39,6 +39,17 @@ const exerciseController = {
         }
       }
 
+      // Validar que el ejercicio variante existe si se proporciona
+      if (variant_exercise_id) {
+        const variantExists = await Exercise.findById(variant_exercise_id);
+        if (!variantExists) {
+          return res.status(400).json({
+            success: false,
+            message: 'El ejercicio variante especificado no existe'
+          });
+        }
+      }
+
       const exerciseData = {
         name: name.trim(),
         sets: sets ? parseInt(sets, 10) : null,
@@ -46,6 +57,7 @@ const exerciseController = {
         notes: notes ? notes.trim() : null,
         youtube_url: youtube_url ? youtube_url.trim() : null,
         suggested_weight: suggested_weight ? parseFloat(suggested_weight) : null,
+        variant_exercise_id: variant_exercise_id ? parseInt(variant_exercise_id, 10) : null,
         created_by: req.user?.id || null
       };
 
@@ -152,7 +164,7 @@ const exerciseController = {
   update: async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, sets, reps, notes, youtube_url, suggested_weight } = req.body;
+      const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = req.body;
 
       // Verificar que existe
       const existing = await Exercise.findById(id);
@@ -181,13 +193,32 @@ const exerciseController = {
         }
       }
 
+      // Validar que el ejercicio variante existe si se proporciona
+      if (variant_exercise_id) {
+        // No puede ser variante de sí mismo
+        if (parseInt(variant_exercise_id, 10) === parseInt(id, 10)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Un ejercicio no puede ser variante de sí mismo'
+          });
+        }
+        const variantExists = await Exercise.findById(variant_exercise_id);
+        if (!variantExists) {
+          return res.status(400).json({
+            success: false,
+            message: 'El ejercicio variante especificado no existe'
+          });
+        }
+      }
+
       const exerciseData = {
         name: name.trim(),
         sets: sets ? parseInt(sets, 10) : null,
         reps: reps ? parseInt(reps, 10) : null,
         notes: notes ? notes.trim() : null,
         youtube_url: youtube_url ? youtube_url.trim() : null,
-        suggested_weight: suggested_weight ? parseFloat(suggested_weight) : null
+        suggested_weight: suggested_weight ? parseFloat(suggested_weight) : null,
+        variant_exercise_id: variant_exercise_id ? parseInt(variant_exercise_id, 10) : null
       };
 
       const exercise = await Exercise.update(id, exerciseData);

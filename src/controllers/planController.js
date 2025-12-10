@@ -36,6 +36,7 @@ const planController = {
             name: ex?.name || '',
             sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
             reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+            suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
             notes: ex?.notes || ex?.observations || null,
             youtube_url: ex?.youtube_url || ex?.youtube || null
           })) : []
@@ -157,6 +158,7 @@ const planController = {
             name: ex?.name || '',
             sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
             reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+            suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
             notes: ex?.notes || ex?.observations || null,
             youtube_url: ex?.youtube_url || ex?.youtube || null
           })) : []

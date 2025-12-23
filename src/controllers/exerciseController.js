@@ -4,7 +4,7 @@ const exerciseController = {
   // Crear nuevo ejercicio
   create: async (req, res) => {
     try {
-      const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = req.body;
+      const { name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = req.body;
 
       // Validaciones - solo nombre es obligatorio
       if (!name) {
@@ -52,6 +52,7 @@ const exerciseController = {
 
       const exerciseData = {
         name: name.trim(),
+        category: category ? category.trim() : null,
         sets: sets ? parseInt(sets, 10) : null,
         reps: reps ? parseInt(reps, 10) : null,
         notes: notes ? notes.trim() : null,
@@ -164,7 +165,7 @@ const exerciseController = {
   update: async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = req.body;
+      const { name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = req.body;
 
       // Verificar que existe
       const existing = await Exercise.findById(id);
@@ -213,6 +214,7 @@ const exerciseController = {
 
       const exerciseData = {
         name: name.trim(),
+        category: category ? category.trim() : null,
         sets: sets ? parseInt(sets, 10) : null,
         reps: reps ? parseInt(reps, 10) : null,
         notes: notes ? notes.trim() : null,

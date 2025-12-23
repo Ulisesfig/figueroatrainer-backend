@@ -11,7 +11,8 @@ const migrations = [
   'migration_add_password_resets.sql',
   'migration_add_plan_json.sql',
   'migration_add_last_login.sql',
-  'migration_add_user_exercises.sql'
+  'migration_add_user_exercises.sql',
+  'migration_add_category.sql'
 ];
 
 async function runMigrations() {

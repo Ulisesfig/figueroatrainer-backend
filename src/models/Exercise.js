@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const Exercise = {
   // Crear un nuevo ejercicio
   create: async (exerciseData) => {
-    const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by } = exerciseData;
+    const { name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by } = exerciseData;
     const text = `
-      INSERT INTO exercises (name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by, created_at, updated_at
+      INSERT INTO exercises (name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+      RETURNING id, name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by, created_at, updated_at
     `;
-    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, variant_exercise_id || null, created_by || null];
+    const values = [name, category || null, sets, reps, notes || null, youtube_url || null, suggested_weight || null, variant_exercise_id || null, created_by || null];
     const result = await query(text, values);
     return result.rows[0];
   },
@@ -71,14 +71,14 @@ const Exercise = {
 
   // Actualizar ejercicio
   update: async (id, exerciseData) => {
-    const { name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = exerciseData;
+    const { name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id } = exerciseData;
     const text = `
       UPDATE exercises 
-      SET name = $1, sets = $2, reps = $3, notes = $4, youtube_url = $5, suggested_weight = $6, variant_exercise_id = $7, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $8
-      RETURNING id, name, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by, created_at, updated_at
+      SET name = $1, category = $2, sets = $3, reps = $4, notes = $5, youtube_url = $6, suggested_weight = $7, variant_exercise_id = $8, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $9
+      RETURNING id, name, category, sets, reps, notes, youtube_url, suggested_weight, variant_exercise_id, created_by, created_at, updated_at
     `;
-    const values = [name, sets, reps, notes || null, youtube_url || null, suggested_weight || null, variant_exercise_id || null, id];
+    const values = [name, category || null, sets, reps, notes || null, youtube_url || null, suggested_weight || null, variant_exercise_id || null, id];
     const result = await query(text, values);
     return result.rows[0];
   },

@@ -70,7 +70,8 @@ Las categorías disponibles son:
 - `espalda` - Ejercicios de espalda
 - `pierna` - Ejercicios de piernas
 - `hombro` - Ejercicios de hombros
-- `brazo` - Ejercicios de brazos
+- `biceps` - Ejercicios de bíceps
+- `triceps` - Ejercicios de tríceps
 - `core` - Ejercicios de abdomen/core
 - `cardio` - Ejercicios cardiovasculares
 - `otro` - Otros ejercicios

@@ -19,6 +19,13 @@ const PLAN_PRICES = {
   'entrenamiento-presencial': { amount: 0, title: 'Entrenamiento Presencial' } // Precio a consultar
 };
 
+const PLAN_DISCOUNTS = {
+  1: 0,
+  3: 0.05,
+  6: 0.10,
+  12: 0.15
+};
+
 const resolveChargeAmount = (defaultAmount) => {
   const isTestAmountEnabled = process.env.PAYMENT_FORCE_TEST_AMOUNT === 'true';
   const testAmount = Number(process.env.PAYMENT_TEST_AMOUNT_ARS || 0);
@@ -35,10 +42,11 @@ const paymentController = {
    */
   createPreference: async (req, res) => {
     try {
-      const { planType } = req.body;
+      const { planType, months = 1 } = req.body;
       const userId = req.user?.id;
+      const selectedMonths = Number(months);
 
-      console.log('🔵 [CREATE PREFERENCE] Usuario:', userId, 'Plan:', planType);
+      console.log('🔵 [CREATE PREFERENCE] Usuario:', userId, 'Plan:', planType, 'Meses:', selectedMonths);
 
       if (!userId) {
         return res.status(401).json({ 
@@ -54,11 +62,23 @@ const paymentController = {
         });
       }
 
-      const planData = PLAN_PRICES[planType];
-      const chargeAmount = resolveChargeAmount(planData.amount);
+      if (!Number.isInteger(selectedMonths) || !Object.prototype.hasOwnProperty.call(PLAN_DISCOUNTS, selectedMonths)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Duracion invalida. Opciones permitidas: 1, 3, 6 o 12 meses'
+        });
+      }
 
-      if (chargeAmount !== planData.amount) {
-        console.log(`⚠️ Monto de prueba activo. Plan: ${planType}, Original: ${planData.amount}, Cobro: ${chargeAmount}`);
+      const planData = PLAN_PRICES[planType];
+      const discountRate = PLAN_DISCOUNTS[selectedMonths];
+      const subtotalAmount = planData.amount * selectedMonths;
+      const discountedAmount = Math.round(subtotalAmount * (1 - discountRate));
+      const chargeAmount = resolveChargeAmount(discountedAmount);
+      const durationLabel = `${selectedMonths} ${selectedMonths === 1 ? 'mes' : 'meses'}`;
+      const paymentPlanTitle = `${planData.title} (${durationLabel})`;
+
+      if (chargeAmount !== discountedAmount) {
+        console.log(`⚠️ Monto de prueba activo. Plan: ${planType}, Original con descuento: ${discountedAmount}, Cobro: ${chargeAmount}`);
       }
 
       if (chargeAmount === 0) {
@@ -80,7 +100,7 @@ const paymentController = {
       // Crear registro de pago en la base de datos
       const paymentRecord = await Payment.create({
         userId,
-        planType: planData.title,
+        planType: paymentPlanTitle,
         amount: chargeAmount,
         currency: 'ARS',
         status: 'pending'
@@ -95,8 +115,8 @@ const paymentController = {
         items: [
           {
             id: planType,
-            title: planData.title,
-            description: `Plan mensual - ${planData.title}`,
+            title: paymentPlanTitle,
+            description: `Plan por ${durationLabel} - ${planData.title}`,
             quantity: 1,
             unit_price: chargeAmount,
             currency_id: 'ARS'
@@ -122,8 +142,11 @@ const paymentController = {
         metadata: {
           user_id: userId,
           plan_type: planType,
+          months: selectedMonths,
+          discount_rate: discountRate,
           payment_record_id: paymentRecord.id,
           original_amount: planData.amount,
+          subtotal_amount: subtotalAmount,
           charged_amount: chargeAmount
         }
       };

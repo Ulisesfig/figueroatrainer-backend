@@ -4,6 +4,7 @@ function parseArgs(argv) {
   const options = {
     all: false,
     confirmDelete: false,
+    ids: null,
     status: null,
     before: null,
     amountLte: null,
@@ -18,6 +19,14 @@ function parseArgs(argv) {
 
     if (arg.startsWith('--status=')) {
       options.status = arg.replace('--status=', '').split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    if (arg.startsWith('--ids=')) {
+      options.ids = arg
+        .replace('--ids=', '')
+        .split(',')
+        .map(s => Number(s.trim()))
+        .filter(n => Number.isInteger(n) && n > 0);
     }
 
     if (arg.startsWith('--before=')) {
@@ -41,6 +50,12 @@ function buildWhereClause(options) {
   const where = [];
   const values = [];
   let idx = 1;
+
+  if (options.ids && options.ids.length > 0) {
+    where.push(`id = ANY($${idx})`);
+    values.push(options.ids);
+    idx += 1;
+  }
 
   if (options.status && options.status.length > 0) {
     where.push(`status = ANY($${idx})`);
@@ -77,8 +92,9 @@ function buildWhereClause(options) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
 
-  if (!options.all && !options.status && !options.before && options.amountLte === null && !options.withoutMpPaymentId) {
+  if (!options.all && !options.ids && !options.status && !options.before && options.amountLte === null && !options.withoutMpPaymentId) {
     console.log('Uso:');
+    console.log('  Simular borrado por IDs:    node scripts/cleanup-payments.js --ids=76,77,78');
     console.log('  Simular borrado por estado: node scripts/cleanup-payments.js --status=pending,rejected');
     console.log('  Simular borrado por fecha:  node scripts/cleanup-payments.js --before=2026-03-11');
     console.log('  Simular borrado por monto:  node scripts/cleanup-payments.js --amount-lte=100');

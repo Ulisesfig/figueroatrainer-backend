@@ -111,9 +111,9 @@ const paymentController = {
           }
         },
         back_urls: {
-          success: `${frontendUrl}/pages/payment-success.html?payment_id={{payment_id}}&status=approved`,
-          failure: `${frontendUrl}/pages/payment-failure.html?payment_id={{payment_id}}&status=rejected`,
-          pending: `${frontendUrl}/pages/payment-pending.html?payment_id={{payment_id}}&status=pending`
+          success: `${frontendUrl}/pages/payment-success.html`,
+          failure: `${frontendUrl}/pages/payment-failure.html`,
+          pending: `${frontendUrl}/pages/payment-pending.html`
         },
         auto_return: 'approved',
         external_reference: paymentRecord.id.toString(),

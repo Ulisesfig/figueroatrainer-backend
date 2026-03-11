@@ -5,6 +5,7 @@ function parseArgs(argv) {
     all: false,
     confirmDelete: false,
     ids: null,
+    excludeIds: null,
     status: null,
     before: null,
     amountLte: null,
@@ -24,6 +25,14 @@ function parseArgs(argv) {
     if (arg.startsWith('--ids=')) {
       options.ids = arg
         .replace('--ids=', '')
+        .split(',')
+        .map(s => Number(s.trim()))
+        .filter(n => Number.isInteger(n) && n > 0);
+    }
+
+    if (arg.startsWith('--exclude-ids=')) {
+      options.excludeIds = arg
+        .replace('--exclude-ids=', '')
         .split(',')
         .map(s => Number(s.trim()))
         .filter(n => Number.isInteger(n) && n > 0);
@@ -54,6 +63,12 @@ function buildWhereClause(options) {
   if (options.ids && options.ids.length > 0) {
     where.push(`id = ANY($${idx})`);
     values.push(options.ids);
+    idx += 1;
+  }
+
+  if (options.excludeIds && options.excludeIds.length > 0) {
+    where.push(`id <> ALL($${idx})`);
+    values.push(options.excludeIds);
     idx += 1;
   }
 
@@ -92,9 +107,10 @@ function buildWhereClause(options) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
 
-  if (!options.all && !options.ids && !options.status && !options.before && options.amountLte === null && !options.withoutMpPaymentId) {
+  if (!options.all && !options.ids && !options.excludeIds && !options.status && !options.before && options.amountLte === null && !options.withoutMpPaymentId) {
     console.log('Uso:');
     console.log('  Simular borrado por IDs:    node scripts/cleanup-payments.js --ids=76,77,78');
+    console.log('  Borrar todo menos IDs:      node scripts/cleanup-payments.js --exclude-ids=76,77,78');
     console.log('  Simular borrado por estado: node scripts/cleanup-payments.js --status=pending,rejected');
     console.log('  Simular borrado por fecha:  node scripts/cleanup-payments.js --before=2026-03-11');
     console.log('  Simular borrado por monto:  node scripts/cleanup-payments.js --amount-lte=100');

@@ -41,9 +41,22 @@ app.use(helmet({
 }));
 
 // CORS - Configuración mejorada
-const allowedOrigins = process.env.CORS_ORIGINS 
-  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://figueroatrainer.netlify.app',
+  'https://figueroatrainer.com',
+  'https://www.figueroatrainer.com'
+];
+
+const allowedOrigins = [
+  ...new Set([
+    ...defaultAllowedOrigins,
+    ...(process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+      : [])
+  ])
+];
 
 const corsOptions = {
   origin: function (origin, callback) {

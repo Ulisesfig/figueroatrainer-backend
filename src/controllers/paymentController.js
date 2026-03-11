@@ -26,6 +26,23 @@ const PLAN_DISCOUNTS = {
   12: 0.15
 };
 
+const PENDING_REJECTED_VISIBLE_MINUTES = 5;
+
+const extractPlanMonths = (planType) => {
+  const text = String(planType || '');
+  const match = text.match(/\((\d+)\s*mes(?:es)?\)/i);
+  if (!match) return 1;
+  const parsed = Number(match[1]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+};
+
+const addMonths = (dateValue, monthsToAdd) => {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setMonth(date.getMonth() + monthsToAdd);
+  return date;
+};
+
 const resolveChargeAmount = (defaultAmount) => {
   const isTestAmountEnabled = process.env.PAYMENT_FORCE_TEST_AMOUNT === 'true';
   const testAmount = Number(process.env.PAYMENT_TEST_AMOUNT_ARS || 0);
@@ -397,17 +414,44 @@ const paymentController = {
       }
 
       const payments = await Payment.findByUserId(userId);
+      const now = new Date();
+
+      const visiblePayments = payments.filter((payment) => {
+        const status = String(payment.status || '').toLowerCase();
+        const createdAt = new Date(payment.created_at);
+
+        if (Number.isNaN(createdAt.getTime())) {
+          return false;
+        }
+
+        if (status === 'pending' || status === 'rejected') {
+          const ageMs = now.getTime() - createdAt.getTime();
+          return ageMs <= PENDING_REJECTED_VISIBLE_MINUTES * 60 * 1000;
+        }
+
+        if (status === 'approved') {
+          const months = extractPlanMonths(payment.plan_type);
+          const approvedReferenceDate = payment.updated_at || payment.created_at;
+          const expiresAt = addMonths(approvedReferenceDate, months);
+          if (!expiresAt) return false;
+          return now.getTime() < expiresAt.getTime();
+        }
+
+        return true;
+      });
 
       res.json({
         success: true,
-        payments: payments.map(p => ({
+        payments: visiblePayments.map(p => ({
           id: p.id,
           planType: p.plan_type,
           amount: p.amount,
           currency: p.currency,
           status: p.status,
           paymentMethod: p.payment_method,
-          createdAt: p.created_at
+          createdAt: p.created_at,
+          updatedAt: p.updated_at,
+          months: extractPlanMonths(p.plan_type)
         }))
       });
 

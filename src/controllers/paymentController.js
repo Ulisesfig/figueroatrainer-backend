@@ -97,6 +97,25 @@ const paymentController = {
         });
       }
 
+      // Evitar pendientes duplicados por múltiples clics consecutivos
+      const existingPending = await Payment.findRecentOpenPendingByUserAndPlan(userId, paymentPlanTitle, 15);
+      if (existingPending) {
+        if (existingPending.mp_preference_id) {
+          console.log('♻️ Reutilizando preferencia existente:', existingPending.mp_preference_id);
+          return res.json({
+            success: true,
+            preferenceId: existingPending.mp_preference_id,
+            chargedAmount: Number(existingPending.amount),
+            reused: true
+          });
+        }
+
+        return res.status(429).json({
+          success: false,
+          message: 'Ya estamos generando tu pago. Espera unos segundos e intenta nuevamente.'
+        });
+      }
+
       // Crear registro de pago en la base de datos
       const paymentRecord = await Payment.create({
         userId,

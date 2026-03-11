@@ -86,6 +86,24 @@ const Payment = {
     return result.rows[0];
   },
 
+  // Buscar pendiente reciente abierto por usuario y plan
+  findRecentOpenPendingByUserAndPlan: async (userId, planType, minutes = 15) => {
+    const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+    const text = `
+      SELECT *
+      FROM payments
+      WHERE user_id = $1
+        AND plan_type = $2
+        AND status = 'pending'
+        AND (mp_payment_id IS NULL OR mp_payment_id = '')
+        AND created_at >= $3
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const result = await query(text, [userId, planType, cutoff]);
+    return result.rows[0];
+  },
+
   // Obtener todos los pagos de un usuario
   findByUserId: async (userId) => {
     const text = `

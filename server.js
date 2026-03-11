@@ -44,6 +44,8 @@ app.use(helmet({
 const defaultAllowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://localhost:8081',
+  'http://localhost:8082',
   'https://figueroatrainer.netlify.app',
   'https://figueroatrainer.com',
   'https://www.figueroatrainer.com'

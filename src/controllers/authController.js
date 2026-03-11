@@ -135,7 +135,7 @@ const authController = {
   // Login de usuario
   login: async (req, res) => {
     try {
-  const { email, password, remember } = req.body;
+  const { email, password, remember, mobile } = req.body;
 
       // Validar campos
       if (!email || !password) {
@@ -160,6 +160,15 @@ const authController = {
         return res.status(401).json({ 
           success: false, 
           message: 'Email o contraseña incorrectos' 
+        });
+      }
+
+      // Verificar acceso móvil si el login proviene de la app
+      if (mobile === true && !user.mobile_enabled) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tu cuenta no tiene acceso a la aplicación móvil. Contactá al entrenador para obtener acceso.',
+          code: 'MOBILE_ACCESS_DENIED'
         });
       }
 

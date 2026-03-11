@@ -174,6 +174,26 @@ const adminController = {
     }
   },
 
+  // Habilitar/deshabilitar acceso móvil de un usuario
+  setUserMobileAccess: async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+      const { enabled } = req.body || {};
+      if (enabled === undefined || enabled === null) {
+        return res.status(400).json({ success: false, message: 'Campo enabled requerido' });
+      }
+      const updated = await User.setMobileEnabled(id, Boolean(enabled));
+      if (!updated) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      res.json({ success: true, message: `Acceso móvil ${enabled ? 'habilitado' : 'deshabilitado'}`, user: updated });
+    } catch (error) {
+      console.error('Error actualizando acceso móvil:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
   // Obtener ejercicios de un usuario específico
   getUserExercises: async (req, res) => {
     try {

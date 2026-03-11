@@ -27,6 +27,7 @@ router.patch(
 );
 router.delete('/users/:id', requireAuth, requireAdmin, adminController.deleteUserById);
 router.post('/users/:id/role', requireAuth, requireAdmin, adminController.setUserRole);
+router.patch('/users/:id/mobile-access', requireAuth, requireAdmin, adminController.setUserMobileAccess);
 
 // Gestión de pesos de usuarios
 router.get('/users/:id/exercises', requireAuth, requireAdmin, adminController.getUserExercises);

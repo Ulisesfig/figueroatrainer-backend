@@ -61,7 +61,7 @@ const User = {
   // Buscar usuario por ID (sin password) - extendido para admin/profile
   findById: async (id) => {
     const text = `
-      SELECT id, name, surname, phone, email, username, document_type, role, created_at, updated_at
+      SELECT id, name, surname, phone, email, username, document_type, role, mobile_enabled, created_at, updated_at
       FROM users 
       WHERE id = $1
     `;
@@ -130,7 +130,7 @@ const User = {
   findPaginated: async (page = 1, limit = 50) => {
     const offset = (page - 1) * limit;
     const text = `
-      SELECT id, name, surname, email, phone, username, document_type, role, created_at 
+      SELECT id, name, surname, email, phone, username, document_type, role, mobile_enabled, created_at 
       FROM users 
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
@@ -144,7 +144,7 @@ const User = {
   searchUsers: async (q, limit = 20) => {
     const term = `%${q}%`;
     const text = `
-      SELECT id, name, surname, email, phone, username, document_type, role, created_at
+      SELECT id, name, surname, email, phone, username, document_type, role, mobile_enabled, created_at
       FROM users
       WHERE email ILIKE $1 OR phone ILIKE $1 OR username ILIKE $1 OR name ILIKE $1 OR surname ILIKE $1
       ORDER BY created_at DESC
@@ -220,6 +220,16 @@ const User = {
     `;
     const values = [r, id];
     const result = await query(text, values);
+    return result.rows[0];
+  },
+
+  // Habilitar o deshabilitar acceso a la app móvil
+  setMobileEnabled: async (id, enabled) => {
+    const text = `
+      UPDATE users SET mobile_enabled = $1, updated_at = NOW() WHERE id = $2
+      RETURNING id, name, surname, phone, email, username, document_type, role, mobile_enabled, created_at, updated_at
+    `;
+    const result = await query(text, [Boolean(enabled), id]);
     return result.rows[0];
   },
 

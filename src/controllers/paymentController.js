@@ -2,6 +2,7 @@ const { MercadoPagoConfig, Preference, Payment: MPPayment } = require('mercadopa
 const Payment = require('../models/Payment');
 const Plan = require('../models/Plan');
 const User = require('../models/User');
+const { query } = require('../config/database');
 const { sendPaymentNotificationToAdmin, sendPaymentConfirmationToClient } = require('../utils/mailer');
 
 // Configurar Mercado Pago
@@ -115,21 +116,15 @@ const paymentController = {
       
       console.log('✅ Preferencia creada:', mpPreference.id);
 
-      // Actualizar registro con el ID de preferencia
-      await Payment.updateWithMPData(paymentRecord.id, {
-        paymentId: null,
-        merchantOrderId: null,
-        status: 'pending',
-        paymentMethod: null,
-        paymentType: null,
-        transactionDetails: null,
-        payerInfo: null
-      });
-
-      await Payment.create({
-        ...paymentRecord,
-        mpPreferenceId: mpPreference.id
-      });
+      // Actualizar registro inicial con el ID de preferencia de MP
+      await query(
+        `
+          UPDATE payments
+          SET mp_preference_id = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `,
+        [mpPreference.id, paymentRecord.id]
+      );
 
       res.json({
         success: true,

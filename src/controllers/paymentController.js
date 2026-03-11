@@ -19,6 +19,16 @@ const PLAN_PRICES = {
   'entrenamiento-presencial': { amount: 0, title: 'Entrenamiento Presencial' } // Precio a consultar
 };
 
+const resolveChargeAmount = (defaultAmount) => {
+  const isTestAmountEnabled = process.env.PAYMENT_FORCE_TEST_AMOUNT === 'true';
+  const testAmount = Number(process.env.PAYMENT_TEST_AMOUNT_ARS || 0);
+
+  if (!isTestAmountEnabled) return defaultAmount;
+  if (!Number.isFinite(testAmount) || testAmount <= 0) return defaultAmount;
+
+  return testAmount;
+};
+
 const paymentController = {
   /**
    * Crear preferencia de pago en Mercado Pago
@@ -45,8 +55,13 @@ const paymentController = {
       }
 
       const planData = PLAN_PRICES[planType];
+      const chargeAmount = resolveChargeAmount(planData.amount);
 
-      if (planData.amount === 0) {
+      if (chargeAmount !== planData.amount) {
+        console.log(`⚠️ Monto de prueba activo. Plan: ${planType}, Original: ${planData.amount}, Cobro: ${chargeAmount}`);
+      }
+
+      if (chargeAmount === 0) {
         return res.status(400).json({ 
           success: false, 
           message: 'Este plan requiere contacto previo' 
@@ -66,7 +81,7 @@ const paymentController = {
       const paymentRecord = await Payment.create({
         userId,
         planType: planData.title,
-        amount: planData.amount,
+        amount: chargeAmount,
         currency: 'ARS',
         status: 'pending'
       });
@@ -83,7 +98,7 @@ const paymentController = {
             title: planData.title,
             description: `Plan mensual - ${planData.title}`,
             quantity: 1,
-            unit_price: planData.amount,
+            unit_price: chargeAmount,
             currency_id: 'ARS'
           }
         ],
@@ -107,7 +122,9 @@ const paymentController = {
         metadata: {
           user_id: userId,
           plan_type: planType,
-          payment_record_id: paymentRecord.id
+          payment_record_id: paymentRecord.id,
+          original_amount: planData.amount,
+          charged_amount: chargeAmount
         }
       };
 
@@ -130,7 +147,8 @@ const paymentController = {
         success: true,
         preferenceId: mpPreference.id,
         initPoint: mpPreference.init_point,
-        sandboxInitPoint: mpPreference.sandbox_init_point
+        sandboxInitPoint: mpPreference.sandbox_init_point,
+        chargedAmount: chargeAmount
       });
 
     } catch (error) {

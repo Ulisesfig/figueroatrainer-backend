@@ -26,7 +26,7 @@ const PLAN_DISCOUNTS = {
   12: 0.15
 };
 
-const PENDING_REJECTED_VISIBLE_MINUTES = 5;
+const PENDING_REJECTED_VISIBLE_MINUTES = 15;
 
 const extractPlanMonths = (planType) => {
   const text = String(planType || '');

@@ -6,6 +6,12 @@ const { requireAuth } = require('../middleware/auth');
 // Obtener todos los ejercicios del usuario
 router.get('/my-exercises', requireAuth, exerciseWeightsController.getMyExercises);
 
+// Obtener estadísticas de evolución por ejercicio del usuario
+router.get('/my-exercises/stats', requireAuth, exerciseWeightsController.getMyExerciseStats);
+
+// Obtener historial de un ejercicio del usuario
+router.get('/my-exercises/:exerciseId/history', requireAuth, exerciseWeightsController.getMyExerciseHistory);
+
 // Crear o actualizar ejercicio
 router.post('/my-exercises', requireAuth, exerciseWeightsController.upsertExercise);
 

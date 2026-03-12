@@ -1,5 +1,149 @@
 const Plan = require('../models/Plan');
 
+function normalizeSectionItems(input) {
+  const toItem = (value) => {
+    if (!value && value !== 0) return null;
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/^[-*\s]+/, '').trim();
+      if (!cleaned) return null;
+      return { name: cleaned, notes: null, duration: null };
+    }
+
+    if (typeof value === 'object') {
+      const name = String(value.name || value.title || '').trim();
+      if (!name) return null;
+      // Si tiene campos de ejercicio (sets/reps/youtube_url) conservarlos como está
+      if (value.sets != null || value.reps != null || value.youtube_url || value.id) {
+        return {
+          id: value.id || null,
+          name,
+          sets: value.sets != null ? parseInt(value.sets, 10) : null,
+          reps: value.reps != null ? parseInt(value.reps, 10) : null,
+          suggested_weight: value.suggested_weight != null ? parseFloat(value.suggested_weight) : null,
+          notes: value.notes ? String(value.notes).trim() : null,
+          youtube_url: value.youtube_url || value.youtube || null,
+          variant: value.variant || null
+        };
+      }
+      const notes = value.notes ? String(value.notes).trim() : null;
+      const duration = value.duration ? String(value.duration).trim() : null;
+      return { name, notes: notes || null, duration: duration || null };
+    }
+
+    return null;
+  };
+
+  if (Array.isArray(input)) {
+    return input.map(toItem).filter(Boolean);
+  }
+
+  if (typeof input === 'string') {
+    return input
+      .split(/\r?\n/)
+      .map((line) => toItem(line))
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function buildSectionText(label, items) {
+  if (!Array.isArray(items) || !items.length) return '';
+  const lines = items.map((item) => {
+    const parts = [item.name];
+    if (item.sets != null && item.reps != null) parts.push(`${item.sets}x${item.reps}`);
+    else if (item.sets != null) parts.push(`${item.sets} series`);
+    if (item.duration) parts.push(`[dur: ${item.duration}]`);
+    if (item.notes) parts.push(`- ${item.notes}`);
+    return `- ${parts.join(' ')}`;
+  });
+  return `${label}:\n${lines.join('\n')}`;
+}
+
+function normalizeStructuredPlan(days, body = {}) {
+  const generalWarmup = normalizeSectionItems(body.general_warmup || body.generalWarmup);
+  const generalMobility = normalizeSectionItems(body.general_mobility || body.generalMobility);
+
+  const safeDays = days.map((d, idx) => ({
+    day: d?.day || idx + 1,
+    name: d?.name || null,
+    warmup: normalizeSectionItems(d?.warmup || d?.calentamiento),
+    mobility: normalizeSectionItems(d?.mobility || d?.movilidad),
+    exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => {
+      const exercise = {
+        id: ex?.id ?? ex?.exercise_id ?? null,
+        name: ex?.name || '',
+        sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
+        reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+        suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
+        notes: ex?.notes || ex?.observations || null,
+        youtube_url: ex?.youtube_url || ex?.youtube || null
+      };
+
+      if (ex?.variant && ex.variant.name && ex.variant.youtube_url) {
+        exercise.variant = {
+          id: ex.variant.id ?? null,
+          name: ex.variant.name,
+          youtube_url: ex.variant.youtube_url,
+          sets: ex.variant.sets != null ? parseInt(ex.variant.sets, 10) : null,
+          reps: ex.variant.reps != null ? parseInt(ex.variant.reps, 10) : null,
+          notes: ex.variant.notes || null,
+          suggested_weight: ex.variant.suggested_weight != null ? parseFloat(ex.variant.suggested_weight) : null
+        };
+      }
+
+      return exercise;
+    }) : []
+  }));
+
+  const contentJson = {
+    general: {
+      warmup: generalWarmup,
+      mobility: generalMobility
+    },
+    days: safeDays
+  };
+
+  const blocks = [];
+  const generalWarmupText = buildSectionText('Calentamiento General', generalWarmup);
+  const generalMobilityText = buildSectionText('Movilidad General', generalMobility);
+  if (generalWarmupText) blocks.push(generalWarmupText);
+  if (generalMobilityText) blocks.push(generalMobilityText);
+
+  const dayBlocks = safeDays.map((d) => {
+    const dayLabel = d.name ? `Día ${d.day} - ${d.name}` : `Día ${d.day}`;
+    const dayParts = [`${dayLabel}:`];
+    const warmupText = buildSectionText('Calentamiento', d.warmup);
+    const mobilityText = buildSectionText('Movilidad', d.mobility);
+    if (warmupText) dayParts.push(warmupText);
+    if (mobilityText) dayParts.push(mobilityText);
+
+    const exerciseLines = d.exercises.length
+      ? d.exercises.map((ex, i) => {
+          const parts = [];
+          if (ex.id) parts.push(`[#ID=${ex.id}]`);
+          if (ex.name) parts.push(`name=${ex.name}`);
+          if (ex.sets != null) parts.push(`sets=${ex.sets}`);
+          if (ex.reps != null) parts.push(`reps=${ex.reps}`);
+          if (ex.notes) parts.push(`obs=${ex.notes}`);
+          if (ex.youtube_url) parts.push(`yt=${ex.youtube_url}`);
+          return `${i + 1}. ${parts.join(' | ')}`;
+        }).join('\n')
+      : 'Sin ejercicios';
+
+    dayParts.push(exerciseLines);
+    return dayParts.join('\n');
+  });
+
+  blocks.push(dayBlocks.join('\n\n'));
+
+  return {
+    contentJson,
+    contentText: blocks.filter(Boolean).join('\n\n')
+  };
+}
+
 const planController = {
   // Crear un nuevo plan
   create: async (req, res) => {
@@ -28,50 +172,10 @@ const planController = {
       let contentText = content;
       let contentJson = null;
       if ((!content || typeof content !== 'string' || !content.trim()) && Array.isArray(days)) {
-        // Normalizar estructura de days
-        const safeDays = days.map((d, idx) => ({
-          day: d?.day || idx + 1,
-          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => {
-            const exercise = {
-              id: ex?.id ?? ex?.exercise_id ?? null,
-              name: ex?.name || '',
-              sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
-              reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
-              suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
-              notes: ex?.notes || ex?.observations || null,
-              youtube_url: ex?.youtube_url || ex?.youtube || null
-            };
-            // Incluir variante si existe
-            if (ex?.variant && ex.variant.name && ex.variant.youtube_url) {
-              exercise.variant = {
-                id: ex.variant.id ?? null,
-                name: ex.variant.name,
-                youtube_url: ex.variant.youtube_url,
-                sets: ex.variant.sets != null ? parseInt(ex.variant.sets, 10) : null,
-                reps: ex.variant.reps != null ? parseInt(ex.variant.reps, 10) : null,
-                notes: ex.variant.notes || null,
-                suggested_weight: ex.variant.suggested_weight != null ? parseFloat(ex.variant.suggested_weight) : null
-              };
-            }
-            return exercise;
-          }) : []
-        }));
-        contentJson = { days: safeDays };
-        // Fallback texto para compatibilidad
-        contentText = safeDays.map(d => {
-          const lines = d.exercises.length ? d.exercises.map((ex, i) => {
-            const parts = [];
-            if (ex.id) parts.push(`[#ID=${ex.id}]`);
-            if (ex.name) parts.push(`name=${ex.name}`);
-            if (ex.sets != null) parts.push(`sets=${ex.sets}`);
-            if (ex.reps != null) parts.push(`reps=${ex.reps}`);
-            if (ex.notes) parts.push(`obs=${ex.notes}`);
-            if (ex.youtube_url) parts.push(`yt=${ex.youtube_url}`);
-            return `${i + 1}. ${parts.join(' | ')}`;
-          }).join('\n') : 'Sin ejercicios';
-          return `Día ${d.day}:\n${lines}`;
-        }).join('\n\n');
-        
+        const structured = normalizeStructuredPlan(days, req.body || {});
+        contentJson = structured.contentJson;
+        contentText = structured.contentText;
+
         console.log('🟢 [CREATE PLAN] Content JSON construido:', JSON.stringify(contentJson, null, 2));
         console.log('🟢 [CREATE PLAN] Content text construido (primeras 300 chars):', contentText.substring(0, 300));
       }
@@ -166,47 +270,9 @@ const planController = {
       let contentText = content;
       let contentJson = null;
       if ((!content || typeof content !== 'string' || !content.trim()) && Array.isArray(days)) {
-        const safeDays = days.map((d, idx) => ({
-          day: d?.day || idx + 1,
-          exercises: Array.isArray(d?.exercises) ? d.exercises.map(ex => {
-            const exercise = {
-              id: ex?.id ?? ex?.exercise_id ?? null,
-              name: ex?.name || '',
-              sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
-              reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
-              suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
-              notes: ex?.notes || ex?.observations || null,
-              youtube_url: ex?.youtube_url || ex?.youtube || null
-            };
-            // Incluir variante si existe
-            if (ex?.variant && ex.variant.name && ex.variant.youtube_url) {
-              exercise.variant = {
-                id: ex.variant.id ?? null,
-                name: ex.variant.name,
-                youtube_url: ex.variant.youtube_url,
-                sets: ex.variant.sets != null ? parseInt(ex.variant.sets, 10) : null,
-                reps: ex.variant.reps != null ? parseInt(ex.variant.reps, 10) : null,
-                notes: ex.variant.notes || null,
-                suggested_weight: ex.variant.suggested_weight != null ? parseFloat(ex.variant.suggested_weight) : null
-              };
-            }
-            return exercise;
-          }) : []
-        }));
-        contentJson = { days: safeDays };
-        contentText = safeDays.map(d => {
-          const lines = d.exercises.length ? d.exercises.map((ex, i) => {
-            const parts = [];
-            if (ex.id) parts.push(`[#ID=${ex.id}]`);
-            if (ex.name) parts.push(`name=${ex.name}`);
-            if (ex.sets != null) parts.push(`sets=${ex.sets}`);
-            if (ex.reps != null) parts.push(`reps=${ex.reps}`);
-            if (ex.notes) parts.push(`obs=${ex.notes}`);
-            if (ex.youtube_url) parts.push(`yt=${ex.youtube_url}`);
-            return `${i + 1}. ${parts.join(' | ')}`;
-          }).join('\n') : 'Sin ejercicios';
-          return `Día ${d.day}:\n${lines}`;
-        }).join('\n\n');
+        const structured = normalizeStructuredPlan(days, req.body || {});
+        contentJson = structured.contentJson;
+        contentText = structured.contentText;
       }
 
       if (!contentText || !contentText.trim()) {

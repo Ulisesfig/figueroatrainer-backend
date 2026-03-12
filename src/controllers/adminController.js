@@ -213,6 +213,54 @@ const adminController = {
     }
   },
 
+  // Obtener estadísticas de evolución de pesos de un usuario
+  getUserExerciseStats: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      if (Number.isNaN(userId)) {
+        return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
+      }
+
+      const limit = parseInt(req.query.historyLimit || req.query.limit || '12', 10);
+      const stats = await UserExercise.getStatsByUser(userId, limit);
+
+      res.json({
+        success: true,
+        stats: stats || []
+      });
+    } catch (error) {
+      console.error('Error obteniendo estadísticas de pesos del usuario:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
+  // Obtener historial de un ejercicio de un usuario
+  getUserExerciseHistory: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      const { exerciseId } = req.params;
+
+      if (Number.isNaN(userId)) {
+        return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
+      }
+
+      if (!exerciseId) {
+        return res.status(400).json({ success: false, message: 'exerciseId requerido' });
+      }
+
+      const limit = parseInt(req.query.limit || '30', 10);
+      const history = await UserExercise.getHistory(userId, exerciseId, limit);
+
+      res.json({
+        success: true,
+        history: history || []
+      });
+    } catch (error) {
+      console.error('Error obteniendo historial de peso del usuario:', error);
+      res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+  },
+
   // Actualizar peso de un ejercicio de un usuario
   updateUserExerciseWeight: async (req, res) => {
     try {

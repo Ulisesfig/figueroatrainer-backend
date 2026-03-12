@@ -31,6 +31,8 @@ router.patch('/users/:id/mobile-access', requireAuth, requireAdmin, adminControl
 
 // Gestión de pesos de usuarios
 router.get('/users/:id/exercises', requireAuth, requireAdmin, adminController.getUserExercises);
+router.get('/users/:id/exercises/stats', requireAuth, requireAdmin, adminController.getUserExerciseStats);
+router.get('/users/:id/exercises/:exerciseId/history', requireAuth, requireAdmin, adminController.getUserExerciseHistory);
 router.patch('/users/:id/exercises/:exerciseId', requireAuth, requireAdmin, adminController.updateUserExerciseWeight);
 router.delete('/users/:id/exercises/:exerciseId', requireAuth, requireAdmin, adminController.deleteUserExercise);
 

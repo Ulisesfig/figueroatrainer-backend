@@ -1,6 +1,62 @@
 const UserExercise = require('../models/UserExercise');
 
 const exerciseController = {
+  // Obtener estadísticas de evolución de pesos del usuario autenticado
+  getMyExerciseStats: async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'No autenticado' });
+      }
+
+      const limit = parseInt(req.query.historyLimit || req.query.limit || '12', 10);
+      const stats = await UserExercise.getStatsByUser(userId, limit);
+
+      res.json({
+        success: true,
+        stats: stats || []
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas de pesos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener estadísticas de pesos',
+        error: error.message
+      });
+    }
+  },
+
+  // Obtener historial de un ejercicio del usuario autenticado
+  getMyExerciseHistory: async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { exerciseId } = req.params;
+
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'No autenticado' });
+      }
+
+      if (!exerciseId) {
+        return res.status(400).json({ success: false, message: 'exerciseId requerido' });
+      }
+
+      const limit = parseInt(req.query.limit || '30', 10);
+      const history = await UserExercise.getHistory(userId, exerciseId, limit);
+
+      res.json({
+        success: true,
+        history: history || []
+      });
+    } catch (error) {
+      console.error('Error al obtener historial de peso:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener historial de peso',
+        error: error.message
+      });
+    }
+  },
+
   // Obtener todos los ejercicios del usuario autenticado
   getMyExercises: async (req, res) => {
     try {

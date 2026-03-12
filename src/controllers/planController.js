@@ -1,5 +1,12 @@
 const Plan = require('../models/Plan');
 
+function normalizeRir(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > 2) return null;
+  return parsed;
+}
+
 function normalizeSectionItems(input) {
   const toItem = (value) => {
     if (!value && value !== 0) return null;
@@ -20,6 +27,7 @@ function normalizeSectionItems(input) {
           name,
           sets: value.sets != null ? parseInt(value.sets, 10) : null,
           reps: value.reps != null ? parseInt(value.reps, 10) : null,
+          rir: normalizeRir(value.rir),
           suggested_weight: value.suggested_weight != null ? parseFloat(value.suggested_weight) : null,
           notes: value.notes ? String(value.notes).trim() : null,
           youtube_url: value.youtube_url || value.youtube || null,
@@ -54,6 +62,7 @@ function buildSectionText(label, items) {
     const parts = [item.name];
     if (item.sets != null && item.reps != null) parts.push(`${item.sets}x${item.reps}`);
     else if (item.sets != null) parts.push(`${item.sets} series`);
+    if (item.rir != null) parts.push(`[RIR ${item.rir}]`);
     if (item.duration) parts.push(`[dur: ${item.duration}]`);
     if (item.notes) parts.push(`- ${item.notes}`);
     return `- ${parts.join(' ')}`;
@@ -76,6 +85,7 @@ function normalizeStructuredPlan(days, body = {}) {
         name: ex?.name || '',
         sets: ex?.sets != null ? parseInt(ex.sets, 10) : null,
         reps: ex?.reps != null ? parseInt(ex.reps, 10) : null,
+        rir: normalizeRir(ex?.rir),
         suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
         notes: ex?.notes || ex?.observations || null,
         youtube_url: ex?.youtube_url || ex?.youtube || null
@@ -126,6 +136,8 @@ function normalizeStructuredPlan(days, body = {}) {
           if (ex.name) parts.push(`name=${ex.name}`);
           if (ex.sets != null) parts.push(`sets=${ex.sets}`);
           if (ex.reps != null) parts.push(`reps=${ex.reps}`);
+          if (ex.rir != null) parts.push(`rir=${ex.rir}`);
+          if (ex.suggested_weight != null) parts.push(`weight=${ex.suggested_weight}`);
           if (ex.notes) parts.push(`obs=${ex.notes}`);
           if (ex.youtube_url) parts.push(`yt=${ex.youtube_url}`);
           return `${i + 1}. ${parts.join(' | ')}`;

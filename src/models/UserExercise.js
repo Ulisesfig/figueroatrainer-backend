@@ -2,24 +2,36 @@ const { query } = require('../config/database');
 
 const UserExercise = {
   // Registrar evento de peso en historial (si la tabla existe)
-  recordHistory: async ({ userId, exerciseId, exerciseName, weight, source = 'manual' }) => {
+  recordHistory: async ({ userId, exerciseId, exerciseName, weight, reps = null, source = 'manual' }) => {
     if (!userId || !exerciseId || weight === undefined || weight === null) return null;
 
     const numericWeight = parseFloat(weight);
     if (!Number.isFinite(numericWeight) || numericWeight < 0) return null;
+    const numericReps = reps === undefined || reps === null || reps === '' ? null : parseInt(reps, 10);
+    const normalizedReps = Number.isInteger(numericReps) && numericReps > 0 ? numericReps : null;
 
     try {
       const text = `
-        INSERT INTO user_exercise_history (user_id, exercise_id, exercise_name, weight, source)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, user_id, exercise_id, exercise_name, weight, source, recorded_at
+        INSERT INTO user_exercise_history (user_id, exercise_id, exercise_name, weight, reps, source)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, user_id, exercise_id, exercise_name, weight, reps, source, recorded_at
       `;
-      const values = [userId, String(exerciseId), exerciseName || String(exerciseId), numericWeight, source];
+      const values = [userId, String(exerciseId), exerciseName || String(exerciseId), numericWeight, normalizedReps, source];
       const res = await query(text, values);
       return res.rows[0];
     } catch (_error) {
-      // Compatibilidad: si la tabla aún no existe, no bloquear flujo principal.
-      return null;
+      try {
+        const fallbackText = `
+          INSERT INTO user_exercise_history (user_id, exercise_id, exercise_name, weight, source)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING id, user_id, exercise_id, exercise_name, weight, source, recorded_at
+        `;
+        const fallbackValues = [userId, String(exerciseId), exerciseName || String(exerciseId), numericWeight, source];
+        const fallbackRes = await query(fallbackText, fallbackValues);
+        return fallbackRes.rows[0];
+      } catch (_fallbackError) {
+        return null;
+      }
     }
   },
 
@@ -28,9 +40,11 @@ const UserExercise = {
     // Intentar con las nuevas columnas, si falla usar las antiguas
     try {
       const text = `
-        SELECT id, user_id, exercise_id, exercise_name, weight, 
+        SELECT id, user_id, exercise_id, exercise_name, weight, reps,
                COALESCE(previous_weight, NULL) as previous_weight, 
+               COALESCE(previous_reps, NULL) as previous_reps,
                COALESCE(weight_updated_at, updated_at) as weight_updated_at, 
+               COALESCE(reps_updated_at, updated_at) as reps_updated_at,
                created_at, updated_at
         FROM user_exercises
         WHERE user_id = $1
@@ -50,34 +64,42 @@ const UserExercise = {
       return res.rows.map(row => ({
         ...row,
         previous_weight: null,
+        previous_reps: null,
+        reps: null,
         weight_updated_at: row.updated_at
       }));
     }
   },
 
   // Guardar o actualizar ejercicio
-  upsert: async ({ userId, exerciseId, exerciseName, weight }) => {
+  upsert: async ({ userId, exerciseId, exerciseName, weight, reps = null }) => {
     const numericWeight = parseFloat(weight) || 0;
+    const numericReps = reps === undefined || reps === null || reps === '' ? null : parseInt(reps, 10);
+    const normalizedReps = Number.isInteger(numericReps) && numericReps > 0 ? numericReps : null;
 
     try {
       const text = `
-        INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, weight_updated_at, updated_at)
-        VALUES ($1, $2, $3, $4, NOW(), NOW())
+        INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, reps, weight_updated_at, reps_updated_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
         ON CONFLICT (user_id, exercise_id) 
         DO UPDATE SET 
           previous_weight = user_exercises.weight,
+          previous_reps = user_exercises.reps,
           weight = $4, 
+          reps = COALESCE($5, user_exercises.reps),
           weight_updated_at = NOW(),
+          reps_updated_at = CASE WHEN $5 IS NOT NULL THEN NOW() ELSE user_exercises.reps_updated_at END,
           updated_at = NOW()
         RETURNING *
       `;
-      const values = [userId, exerciseId, exerciseName, numericWeight];
+      const values = [userId, exerciseId, exerciseName, numericWeight, normalizedReps];
       const res = await query(text, values);
       await UserExercise.recordHistory({
         userId,
         exerciseId,
         exerciseName,
         weight: numericWeight,
+        reps: normalizedReps,
         source: 'upsert'
       });
       return res.rows[0];
@@ -97,6 +119,7 @@ const UserExercise = {
         exerciseId,
         exerciseName,
         weight: numericWeight,
+        reps: normalizedReps,
         source: 'upsert-fallback'
       });
       return res.rows[0];
@@ -104,22 +127,25 @@ const UserExercise = {
   },
 
   // Crear nuevo ejercicio
-  create: async ({ userId, exerciseId, exerciseName, weight = 0 }) => {
+  create: async ({ userId, exerciseId, exerciseName, weight = 0, reps = null }) => {
     const numericWeight = parseFloat(weight) || 0;
+    const numericReps = reps === undefined || reps === null || reps === '' ? null : parseInt(reps, 10);
+    const normalizedReps = Number.isInteger(numericReps) && numericReps > 0 ? numericReps : null;
 
     try {
       const text = `
-        INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, weight_updated_at)
-        VALUES ($1, $2, $3, $4, NOW())
+        INSERT INTO user_exercises (user_id, exercise_id, exercise_name, weight, reps, weight_updated_at, reps_updated_at)
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
         RETURNING *
       `;
-      const values = [userId, exerciseId, exerciseName, numericWeight];
+      const values = [userId, exerciseId, exerciseName, numericWeight, normalizedReps];
       const res = await query(text, values);
       await UserExercise.recordHistory({
         userId,
         exerciseId,
         exerciseName,
         weight: numericWeight,
+        reps: normalizedReps,
         source: 'create'
       });
       return res.rows[0];
@@ -136,6 +162,7 @@ const UserExercise = {
         exerciseId,
         exerciseName,
         weight: numericWeight,
+        reps: normalizedReps,
         source: 'create-fallback'
       });
       return res.rows[0];
@@ -154,20 +181,25 @@ const UserExercise = {
   },
 
   // Actualizar peso de un ejercicio (guarda el peso anterior)
-  updateWeight: async (userId, exerciseId, weight) => {
+  updateWeight: async (userId, exerciseId, weight, reps = undefined) => {
     const numericWeight = parseFloat(weight);
+    const numericReps = reps === undefined || reps === null || reps === '' ? null : parseInt(reps, 10);
+    const normalizedReps = Number.isInteger(numericReps) && numericReps > 0 ? numericReps : null;
 
     try {
       const text = `
         UPDATE user_exercises
         SET previous_weight = weight,
+            previous_reps = reps,
             weight = $3, 
+            reps = COALESCE($4, reps),
             weight_updated_at = NOW(),
+            reps_updated_at = CASE WHEN $4 IS NOT NULL THEN NOW() ELSE reps_updated_at END,
             updated_at = NOW()
         WHERE user_id = $1 AND exercise_id = $2
         RETURNING *
       `;
-      const res = await query(text, [userId, exerciseId, numericWeight]);
+      const res = await query(text, [userId, exerciseId, numericWeight, normalizedReps]);
       const row = res.rows[0];
       if (row) {
         await UserExercise.recordHistory({
@@ -175,6 +207,7 @@ const UserExercise = {
           exerciseId,
           exerciseName: row.exercise_name,
           weight: numericWeight,
+          reps: normalizedReps,
           source: 'update'
         });
       }
@@ -194,6 +227,7 @@ const UserExercise = {
           exerciseId,
           exerciseName: row.exercise_name,
           weight: numericWeight,
+          reps: normalizedReps,
           source: 'update-fallback'
         });
       }
@@ -207,7 +241,7 @@ const UserExercise = {
 
     try {
       const text = `
-        SELECT id, user_id, exercise_id, exercise_name, weight, source, recorded_at
+        SELECT id, user_id, exercise_id, exercise_name, weight, reps, source, recorded_at
         FROM user_exercise_history
         WHERE user_id = $1 AND exercise_id = $2
         ORDER BY recorded_at DESC

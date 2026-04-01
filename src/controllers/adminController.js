@@ -266,7 +266,7 @@ const adminController = {
     try {
       const userId = parseInt(req.params.id, 10);
       const exerciseId = req.params.exerciseId;
-      const { weight } = req.body;
+      const { weight, reps } = req.body;
 
       if (Number.isNaN(userId)) {
         return res.status(400).json({ success: false, message: 'ID de usuario inválido' });
@@ -276,7 +276,7 @@ const adminController = {
         return res.status(400).json({ success: false, message: 'exerciseId y weight son requeridos' });
       }
 
-      const exercise = await UserExercise.updateWeight(userId, exerciseId, parseFloat(weight));
+      const exercise = await UserExercise.updateWeight(userId, exerciseId, parseFloat(weight), reps);
 
       if (!exercise) {
         return res.status(404).json({ success: false, message: 'Ejercicio no encontrado' });

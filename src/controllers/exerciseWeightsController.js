@@ -173,7 +173,7 @@ const exerciseController = {
       }
 
       // Soportar tanto camelCase como snake_case desde el frontend
-      const { exerciseId, exerciseName, exercise_id, exercise_name, weight } = req.body;
+      const { exerciseId, exerciseName, exercise_id, exercise_name, weight, reps } = req.body;
       const finalExerciseId = exerciseId || exercise_id;
       const finalExerciseName = exerciseName || exercise_name;
       
@@ -206,7 +206,8 @@ const exerciseController = {
         userId,
         exerciseId: normalizedExerciseId,
         exerciseName: canonicalExerciseName,
-        weight: parseFloat(weight) || 0
+        weight: parseFloat(weight) || 0,
+        reps
       });
 
       res.json({
@@ -259,7 +260,7 @@ const exerciseController = {
     try {
       const userId = req.user?.id;
       const { exerciseId } = req.params;
-      const { weight } = req.body;
+      const { weight, reps } = req.body;
 
       if (!userId) {
         return res.status(401).json({ success: false, message: 'No autenticado' });
@@ -272,7 +273,7 @@ const exerciseController = {
         });
       }
 
-      const exercise = await UserExercise.updateWeight(userId, exerciseId, parseFloat(weight));
+      const exercise = await UserExercise.updateWeight(userId, exerciseId, parseFloat(weight), reps);
 
       if (!exercise) {
         return res.status(404).json({

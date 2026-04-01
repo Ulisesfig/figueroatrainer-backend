@@ -5,8 +5,11 @@ CREATE TABLE IF NOT EXISTS user_exercises (
   exercise_id VARCHAR(100) NOT NULL,
   exercise_name VARCHAR(100) NOT NULL,
   weight DECIMAL(6, 2) DEFAULT 0,
+  reps INTEGER DEFAULT NULL,
   previous_weight DECIMAL(6, 2) DEFAULT NULL,
+  previous_reps INTEGER DEFAULT NULL,
   weight_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  reps_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, exercise_id)
@@ -20,7 +23,16 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='previous_weight') THEN
     ALTER TABLE user_exercises ADD COLUMN previous_weight DECIMAL(6, 2) DEFAULT NULL;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='reps') THEN
+    ALTER TABLE user_exercises ADD COLUMN reps INTEGER DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='previous_reps') THEN
+    ALTER TABLE user_exercises ADD COLUMN previous_reps INTEGER DEFAULT NULL;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='weight_updated_at') THEN
     ALTER TABLE user_exercises ADD COLUMN weight_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_exercises' AND column_name='reps_updated_at') THEN
+    ALTER TABLE user_exercises ADD COLUMN reps_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
   END IF;
 END $$;

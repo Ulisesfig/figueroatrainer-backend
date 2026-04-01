@@ -7,6 +7,29 @@ function normalizeRir(value) {
   return parsed;
 }
 
+function normalizeSeriesBreakdown(seriesBreakdown) {
+  if (!Array.isArray(seriesBreakdown)) return null;
+
+  const normalized = seriesBreakdown
+    .map((s) => {
+      if (!s || typeof s !== 'object') return null;
+      const weight = s.weight !== undefined && s.weight !== null && s.weight !== '' ? parseFloat(s.weight) : null;
+      const reps = s.reps !== undefined && s.reps !== null && s.reps !== '' ? parseInt(s.reps, 10) : null;
+      const rir = normalizeRir(s.rir);
+
+      if (weight == null && reps == null && rir == null) return null;
+
+      return {
+        weight: Number.isNaN(weight) ? null : weight,
+        reps: Number.isNaN(reps) ? null : reps,
+        rir
+      };
+    })
+    .filter(Boolean);
+
+  return normalized.length ? normalized : null;
+}
+
 function normalizeSectionItems(input) {
   const toItem = (value) => {
     if (!value && value !== 0) return null;
@@ -31,6 +54,7 @@ function normalizeSectionItems(input) {
           suggested_weight: value.suggested_weight != null ? parseFloat(value.suggested_weight) : null,
           notes: value.notes ? String(value.notes).trim() : null,
           youtube_url: value.youtube_url || value.youtube || null,
+          series_breakdown: normalizeSeriesBreakdown(value.series_breakdown),
           variant: value.variant || null
         };
       }
@@ -88,7 +112,8 @@ function normalizeStructuredPlan(days, body = {}) {
         rir: normalizeRir(ex?.rir),
         suggested_weight: ex?.suggested_weight != null ? parseFloat(ex.suggested_weight) : null,
         notes: ex?.notes || ex?.observations || null,
-        youtube_url: ex?.youtube_url || ex?.youtube || null
+        youtube_url: ex?.youtube_url || ex?.youtube || null,
+        series_breakdown: normalizeSeriesBreakdown(ex?.series_breakdown)
       };
 
       if (ex?.variant && ex.variant.name && ex.variant.youtube_url) {

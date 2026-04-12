@@ -331,7 +331,7 @@ const authController = {
         message: 'Te enviamos un código de verificación a tu email. Si no lo recibís en 1-2 minutos, verificá spam o solicitá uno nuevo.',
         emailQueued: true,
         cooldownMs: COOLDOWN_MS,
-        provider: 'sendgrid'
+        provider: 'smtp2go'
       };
       res.json(payload);
 

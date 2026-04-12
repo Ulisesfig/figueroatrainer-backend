@@ -73,7 +73,7 @@ ADMIN_PANEL_URL=https://figueroatrainer.netlify.app/pages/admin.html
 **Notas:**
 - Reemplaza `TEST-tu-access-token-aqui` con tu Access Token real
 - `ADMIN_EMAIL` es donde llegarán las notificaciones de compra
-- Las demás variables ya deberían estar configuradas (SENDGRID_API_KEY, etc.)
+- Las demás variables ya deberían estar configuradas (SMTP_HOST, SMTP_USER, SMTP_PASS, etc.)
 
 ---
 
@@ -295,7 +295,7 @@ const PLAN_PRICES = {
 
 ### ❌ No llegan emails
 **Solución:** 
-1. Verifica que `SENDGRID_API_KEY` esté configurado
+1. Verifica que `SMTP_HOST`, `SMTP_USER` y `SMTP_PASS` estén configurados
 2. Verifica que `ADMIN_EMAIL` sea correcto
 3. Revisa logs en Railway: `railway logs`
 

@@ -95,10 +95,10 @@ CORS_ORIGINS=https://tu-frontend.netlify.app,https://tu-frontend.vercel.app
 
 #### **PASO 4.1: Configurar SMTP (Recuperación de contraseña)**
 
-Para que los correos de recuperación lleguen a los usuarios, configurá un proveedor SMTP (SendGrid, Brevo/Sendinblue, Mailgun, etc.). Cualquiera de estos funciona con las mismas variables:
+Para que los correos de recuperación lleguen a los usuarios, configurá un proveedor SMTP (SMTP2GO, Brevo/Sendinblue, Mailgun, etc.). Cualquiera de estos funciona con las mismas variables:
 
 ```env
-SMTP_HOST= # p. ej. smtp.sendgrid.net o smtp-relay.sendinblue.com
+SMTP_HOST= # p. ej. mail.smtp2go.com o smtp-relay.sendinblue.com
 SMTP_PORT=587 # 465 si usás TLS estricto (secure)
 SMTP_USER= # usuario/clave API segun proveedor
 SMTP_PASS= # contraseña o API key
@@ -107,7 +107,7 @@ FROM_EMAIL=no-reply@tu-dominio.com
 ```
 
 Proveedores sugeridos:
-- SendGrid (recomendado, fácil con API Key como SMTP_USER=apikey y SMTP_PASS=<API_KEY>)
+- SMTP2GO (simple de configurar y con credenciales SMTP estándar)
 - Brevo/Sendinblue (plan gratis, buen deliverability)
 - Mailgun (estable, requiere dominio verificado)
 
@@ -118,16 +118,16 @@ Pasos generales en el panel del proveedor:
 4) Copiar host/puerto/usuario/contraseña.
 5) Ir a Railway → servicio backend → Variables → agregar las variables anteriores.
 
-Guía rápida: SendGrid en 5 minutos
-1) Crear cuenta en https://sendgrid.com
-2) Ir a Settings → API Keys → Create API Key (Full Access o Mail Send).
-3) SMTP en SendGrid usa:
-   - SMTP_HOST = smtp.sendgrid.net
+Guía rápida: SMTP2GO en 5 minutos
+1) Crear cuenta en https://www.smtp2go.com
+2) Ir a la sección de SMTP credentials y crear usuario/clave.
+3) SMTP2GO usa:
+   - SMTP_HOST = mail.smtp2go.com
    - SMTP_PORT = 587
-   - SMTP_USER = apikey
-   - SMTP_PASS = <TU_API_KEY>
+   - SMTP_USER = tu usuario SMTP2GO
+   - SMTP_PASS = tu password o API key
    - SMTP_SECURE = false
-   - FROM_EMAIL = el remitente verificado en SendGrid
+   - FROM_EMAIL = el remitente verificado
 4) Agregar estas variables en Railway (servicio backend) y redeploy automático.
 
 Guía rápida: Brevo (Sendinblue)

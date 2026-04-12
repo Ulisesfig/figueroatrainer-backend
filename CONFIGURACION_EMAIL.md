@@ -33,25 +33,24 @@ FROM_EMAIL=tu-email@gmail.com
 4. **Redeploy**
    - Railway re-desplegará automáticamente con las nuevas variables
 
-### Opción 2: Usar SendGrid (Recomendado para producción)
+### Opción 2: Usar SMTP2GO (Recomendado para producción)
 
-SendGrid ofrece 100 emails gratis por día.
+SMTP2GO ofrece un plan gratuito útil para validación y producción liviana.
 
-1. **Crear cuenta en SendGrid**
-   - Regístrate en https://sendgrid.com/
+1. **Crear cuenta en SMTP2GO**
+   - Regístrate en https://www.smtp2go.com/
 
-2. **Generar API Key**
-   - Ve a Settings > API Keys
-   - Crea una nueva API Key con permisos de "Mail Send"
-   - Copia la API Key
+2. **Generar credenciales SMTP**
+   - Ve a la sección de SMTP / Users / Credentials
+   - Crea un usuario SMTP y copia la contraseña o API key
 
 3. **Configurar en Railway**
 ```
-SMTP_HOST=smtp.sendgrid.net
+SMTP_HOST=mail.smtp2go.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=apikey
-SMTP_PASS=TU_API_KEY_DE_SENDGRID
+SMTP_USER=TU_USUARIO_SMTP2GO
+SMTP_PASS=TU_PASSWORD_O_API_KEY_SMTP2GO
 FROM_EMAIL=tu-email-verificado@tudominio.com
 ```
 
@@ -114,7 +113,7 @@ O desde el dashboard de Railway, ve a los logs después de intentar recuperar co
 - Las contraseñas de aplicación son diferentes de tu contraseña de Gmail
 - Nunca compartas tu contraseña de aplicación públicamente
 - Gmail tiene límite de 500 emails por día
-- Para producción, usa servicios como SendGrid, Mailgun o Amazon SES
+- Para producción, usa servicios como SMTP2GO, Mailgun o Amazon SES
 - Siempre verifica que `FROM_EMAIL` esté correctamente configurado
 
 ## 🆘 Problemas Comunes

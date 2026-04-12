@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Script de diagnóstico SMTP
- * Prueba diferentes configuraciones de SendGrid
+ * Prueba diferentes configuraciones de SMTP2GO
  */
 
 const nodemailer = require('nodemailer');
@@ -32,7 +32,7 @@ async function testConnection(config, name) {
 }
 
 async function main() {
-  console.log('🔧 Diagnóstico de Conexión SMTP con SendGrid\n');
+  console.log('🔧 Diagnóstico de Conexión SMTP con SMTP2GO\n');
   
   const apiKey = process.env.SMTP_PASS;
   if (!apiKey) {
@@ -42,25 +42,25 @@ async function main() {
   
   const configs = [
     {
-      name: 'SendGrid Puerto 587 (sin TLS)',
-      host: 'smtp.sendgrid.net',
+      name: 'SMTP2GO Puerto 587 (sin TLS)',
+      host: process.env.SMTP_HOST || 'mail.smtp2go.com',
       port: 587,
       secure: false,
-      auth: { user: 'apikey', pass: apiKey }
+      auth: { user: process.env.SMTP_USER, pass: apiKey }
     },
     {
-      name: 'SendGrid Puerto 2525 (alternativo)',
-      host: 'smtp.sendgrid.net',
+      name: 'SMTP2GO Puerto 2525 (alternativo)',
+      host: process.env.SMTP_HOST || 'mail.smtp2go.com',
       port: 2525,
       secure: false,
-      auth: { user: 'apikey', pass: apiKey }
+      auth: { user: process.env.SMTP_USER, pass: apiKey }
     },
     {
-      name: 'SendGrid Puerto 465 (SSL)',
-      host: 'smtp.sendgrid.net',
+      name: 'SMTP2GO Puerto 465 (SSL)',
+      host: process.env.SMTP_HOST || 'mail.smtp2go.com',
       port: 465,
       secure: true,
-      auth: { user: 'apikey', pass: apiKey }
+      auth: { user: process.env.SMTP_USER, pass: apiKey }
     }
   ];
   
@@ -84,10 +84,10 @@ async function main() {
   } else {
     console.log('\n❌ Ninguna configuración funciona.');
     console.log('\n💡 Posibles causas:');
-    console.log('   1. API Key de SendGrid inválida o expirada');
+    console.log('   1. Credenciales SMTP2GO inválidas o expirada');
     console.log('   2. Railway bloqueando puertos SMTP (común en plataformas cloud)');
-    console.log('   3. API Key sin permisos de "Mail Send"');
-    console.log('   4. Verificar en SendGrid Dashboard > Settings > API Keys');
+    console.log('   3. Usuario o password SMTP2GO incorrectos');
+    console.log('   4. Verificar en el panel de SMTP2GO las credenciales SMTP');
     process.exit(1);
   }
 }

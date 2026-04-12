@@ -325,12 +325,13 @@ Gracias por confiar en Figueroa Trainer!
  * Envía notificación de nuevo mensaje de contacto al administrador
  */
 async function sendContactNotificationToAdmin(contactData) {
-  const apiKey = process.env.SENDGRID_API_KEY || process.env.SMTP_PASS;
+  const candidateApiKey = process.env.SENDGRID_API_KEY || process.env.SMTP_PASS;
+  const apiKey = candidateApiKey && candidateApiKey.startsWith('SG.') ? candidateApiKey : null;
   const adminEmail = process.env.ADMIN_EMAIL || 'ulefigueroa@gmail.com';
   const from = process.env.FROM_EMAIL || 'info@figueroatrainer.com';
 
   if (!apiKey) {
-    console.warn('⚠️ SENDGRID_API_KEY no configurado para contacto. Se omite envio de email.');
+    console.warn('⚠️ SENDGRID_API_KEY no configurado o invalido para contacto. Se omite envio de email.');
     console.log(`[MAILER] Contacto recibido sin envio de email. Admin objetivo: ${adminEmail}`);
     return { simulated: true, reason: 'missing_sendgrid_api_key' };
   }

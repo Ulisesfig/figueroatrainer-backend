@@ -9,6 +9,11 @@ const { requireAuth } = require('../middleware/auth');
 const contactValidation = [
   body('name').trim().notEmpty().withMessage('El nombre es requerido'),
   body('email').isEmail().withMessage('Email inválido'),
+  body('topic')
+    .trim()
+    .notEmpty().withMessage('El tema de la consulta es requerido')
+    .isIn(['planes', 'rutina', 'nutricion', 'tienda', 'otro'])
+    .withMessage('Tema de consulta inválido'),
   body('message').trim().notEmpty().withMessage('El mensaje es requerido')
     .isLength({ min: 10 }).withMessage('El mensaje debe tener al menos 10 caracteres')
 ];

@@ -3,13 +3,13 @@ const { query } = require('../config/database');
 const Contact = {
   // Crear un nuevo mensaje de contacto
   create: async (contactData) => {
-    const { name, email, message } = contactData;
+    const { name, email, topic, message } = contactData;
     const text = `
-      INSERT INTO contacts (name, email, message) 
-      VALUES ($1, $2, $3) 
-      RETURNING id, name, email, message, created_at
+      INSERT INTO contacts (name, email, topic, message) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING id, name, email, topic, message, created_at
     `;
-    const values = [name, email, message];
+    const values = [name, email, topic, message];
     
     try {
       const result = await query(text, values);

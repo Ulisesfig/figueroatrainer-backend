@@ -321,8 +321,104 @@ Gracias por confiar en Figueroa Trainer!
   }
 }
 
+/**
+ * Envía notificación de nuevo mensaje de contacto al administrador
+ */
+async function sendContactNotificationToAdmin(contactData) {
+  const apiKey = process.env.SENDGRID_API_KEY || process.env.SMTP_PASS;
+  const adminEmail = process.env.ADMIN_EMAIL || 'ulefigueroa@gmail.com';
+  const from = process.env.FROM_EMAIL || 'info@figueroatrainer.com';
+
+  if (!apiKey) {
+    console.error('❌ SENDGRID_API_KEY no configurado');
+    throw new Error('Servicio de email no configurado');
+  }
+
+  sgMail.setApiKey(apiKey);
+
+  const { name, email, topic, message, createdAt } = contactData;
+  const topicLabels = {
+    planes: 'Planes y tarifas',
+    rutina: 'Dudas sobre rutina',
+    nutricion: 'Consulta de nutricion',
+    tienda: 'Pedido en tienda',
+    otro: 'Otro'
+  };
+  const topicLabel = topicLabels[topic] || topic;
+
+  const subject = `📩 Nuevo contacto: ${topicLabel} - ${name}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
+      <h2 style="color: #111827;">Nuevo mensaje de contacto</h2>
+      <p style="color: #374151;">Se recibió una nueva consulta desde la pagina de contacto.</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;"><strong>Nombre</strong></td>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;">${name}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;"><strong>Email</strong></td>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;">${email}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;"><strong>Tema</strong></td>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;">${topicLabel}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;"><strong>Fecha</strong></td>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;">${new Date(createdAt || Date.now()).toLocaleString('es-AR')}</td>
+        </tr>
+      </table>
+
+      <div style="padding: 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <p style="margin: 0 0 8px 0;"><strong>Mensaje:</strong></p>
+        <p style="margin: 0; white-space: pre-wrap; color: #111827;">${message}</p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+Nuevo mensaje de contacto
+
+Nombre: ${name}
+Email: ${email}
+Tema: ${topicLabel}
+Fecha: ${new Date(createdAt || Date.now()).toLocaleString('es-AR')}
+
+Mensaje:
+${message}
+  `;
+
+  const msg = {
+    to: adminEmail,
+    from,
+    subject,
+    text,
+    html
+  };
+
+  try {
+    console.log('📧 Enviando notificación de contacto al admin:', adminEmail);
+    const response = await sgMail.send(msg);
+    console.log('✅ Notificación de contacto enviada exitosamente');
+    return {
+      success: true,
+      statusCode: response[0].statusCode,
+      messageId: response[0].headers['x-message-id']
+    };
+  } catch (error) {
+    console.error('❌ Error al enviar email de contacto:', error.message);
+    if (error.response) {
+      console.error('   Response Body:', JSON.stringify(error.response.body, null, 2));
+    }
+    throw error;
+  }
+}
+
 module.exports = { 
   sendPasswordResetCode,
   sendPaymentNotificationToAdmin,
-  sendPaymentConfirmationToClient
+  sendPaymentConfirmationToClient,
+  sendContactNotificationToAdmin
 };

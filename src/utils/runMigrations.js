@@ -13,7 +13,8 @@ const migrations = [
   'migration_add_last_login.sql',
   'migration_add_user_exercises.sql',
   'migration_add_user_exercise_history.sql',
-  'migration_add_category.sql'
+  'migration_add_category.sql',
+  'migration_add_contact_topic.sql'
 ];
 
 async function runMigrations() {

@@ -1,13 +1,14 @@
 const Contact = require('../models/Contact');
+const { sendContactNotificationToAdmin } = require('../utils/mailer');
 
 const contactController = {
   // Crear mensaje de contacto
   createContact: async (req, res) => {
     try {
-      const { name, email, message } = req.body;
+      const { name, email, topic, message } = req.body;
 
       // Validar campos
-      if (!name || !email || !message) {
+      if (!name || !email || !topic || !message) {
         return res.status(400).json({ 
           success: false, 
           message: 'Todos los campos son requeridos' 
@@ -27,7 +28,16 @@ const contactController = {
       const newContact = await Contact.create({
         name,
         email,
+        topic,
         message
+      });
+
+      await sendContactNotificationToAdmin({
+        name,
+        email,
+        topic,
+        message,
+        createdAt: newContact.created_at
       });
 
       res.status(201).json({ 

@@ -330,8 +330,9 @@ async function sendContactNotificationToAdmin(contactData) {
   const from = process.env.FROM_EMAIL || 'info@figueroatrainer.com';
 
   if (!apiKey) {
-    console.error('❌ SENDGRID_API_KEY no configurado');
-    throw new Error('Servicio de email no configurado');
+    console.warn('⚠️ SENDGRID_API_KEY no configurado para contacto. Se omite envio de email.');
+    console.log(`[MAILER] Contacto recibido sin envio de email. Admin objetivo: ${adminEmail}`);
+    return { simulated: true, reason: 'missing_sendgrid_api_key' };
   }
 
   sgMail.setApiKey(apiKey);

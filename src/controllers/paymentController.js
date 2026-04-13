@@ -14,8 +14,8 @@ const payment = new MPPayment(client);
 
 // Mapeo de planes con precios
 const PLAN_PRICES = {
-  'rutina-personalizada': { amount: 20000, title: 'Rutina Personalizada' },
-  'rutina-seguimiento': { amount: 30000, title: 'Rutina + Seguimiento' },
+  'rutina-personalizada': { amount: 30000, title: 'Rutina Personalizada' },
+  'rutina-seguimiento': { amount: 40000, title: 'Rutina + Seguimiento' },
   'entrenamiento-presencial': { amount: 0, title: 'Entrenamiento Presencial' } // Precio a consultar
 };
 

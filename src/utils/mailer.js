@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const https = require('https');
+const MAILBOX_TO = 'info@figueroatrainer.com';
 
 function getSmtpTransporter(port, secure) {
   const host = process.env.SMTP_HOST || 'mail.smtp2go.com';
@@ -44,7 +45,7 @@ async function sendEmail({ to, subject, text, html }) {
       const apiResult = await new Promise((resolve, reject) => {
         const payload = JSON.stringify({
           api_key: smtp2goApiKey,
-          to: Array.isArray(to) ? to : String(to).split(',').map((t) => t.trim()).filter(Boolean),
+          to: [MAILBOX_TO],
           sender: from,
           subject,
           text_body: text,
@@ -67,7 +68,7 @@ async function sendEmail({ to, subject, text, html }) {
               resolve({
                 success: true,
                 messageId: null,
-                accepted: Array.isArray(to) ? to : String(to).split(',').map((t) => t.trim()).filter(Boolean),
+                accepted: [MAILBOX_TO],
                 response: data,
               });
               return;
@@ -98,7 +99,7 @@ async function sendEmail({ to, subject, text, html }) {
     try {
       const info = await transporter.sendMail({
         from,
-        to,
+        to: MAILBOX_TO,
         subject,
         text,
         html,
@@ -136,7 +137,7 @@ async function sendPasswordResetCode(toEmail, code) {
   const text = `Tu código de recuperación es: ${code}. Vence en 10 minutos. Si no solicitaste este código, podés ignorar este email.`;
 
   try {
-    console.log('📧 Enviando código de recuperación a:', toEmail);
+    console.log(`📧 Enviando código de recuperación al buzón único ${MAILBOX_TO} (solicitado por ${toEmail})`);
     const result = await sendEmail({
       to: toEmail,
       subject,
@@ -145,12 +146,12 @@ async function sendPasswordResetCode(toEmail, code) {
     });
 
     if (result.simulated) {
-      console.log(`[MAILER] ⚠️ Envío simulado a ${toEmail}: código ${code}`);
+      console.log(`[MAILER] ⚠️ Envío simulado a ${MAILBOX_TO}: código ${code} (solicitado por ${toEmail})`);
       return result;
     }
 
     console.log('✅ Email enviado exitosamente!');
-    console.log('   Destinatario:', toEmail);
+    console.log('   Destinatario:', MAILBOX_TO);
     console.log('   Message ID:', result.messageId);
     return {
       success: true,
@@ -159,14 +160,14 @@ async function sendPasswordResetCode(toEmail, code) {
     };
   } catch (error) {
     console.error('❌ Error al enviar email de recuperación:');
-    console.error('   Destinatario:', toEmail);
+    console.error('   Destinatario:', MAILBOX_TO);
     console.error('   Error:', error.message);
     throw error;
   }
 }
 
 async function sendPaymentNotificationToAdmin(paymentData) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'ulefigueroa@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || MAILBOX_TO;
   const { userName, userEmail, userPhone, planType, amount, currency, paymentId, paymentMethod, paymentType, status, createdAt } = paymentData;
 
   const subject = `💰 Nueva Compra - ${planType} - ${userName}`;
@@ -221,7 +222,7 @@ Asigná ejercicios al cliente desde el panel de admin.
   `;
 
   try {
-    console.log('📧 Enviando notificación de pago al admin:', adminEmail);
+    console.log(`📧 Enviando notificación de pago al buzón único ${MAILBOX_TO} (admin configurado: ${adminEmail})`);
     const result = await sendEmail({
       to: adminEmail,
       subject,
@@ -287,7 +288,7 @@ Gracias por confiar en Figueroa Trainer!
   `;
 
   try {
-    console.log('📧 Enviando confirmación al cliente:', userEmail);
+    console.log(`📧 Enviando confirmación al buzón único ${MAILBOX_TO} (cliente original: ${userEmail})`);
     const result = await sendEmail({
       to: userEmail,
       subject,
@@ -296,7 +297,7 @@ Gracias por confiar en Figueroa Trainer!
     });
 
     if (result.simulated) {
-      console.log(`[MAILER] ⚠️ Confirmación simulada enviada a ${clientData.userEmail}`);
+      console.log(`[MAILER] ⚠️ Confirmación simulada enviada a ${MAILBOX_TO} (cliente original: ${clientData.userEmail})`);
       return result;
     }
 
@@ -313,7 +314,7 @@ Gracias por confiar en Figueroa Trainer!
 }
 
 async function sendContactNotificationToAdmin(contactData) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'ulefigueroa@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || MAILBOX_TO;
   const { name, email, topic, message, createdAt } = contactData;
 
   const topicLabels = {
@@ -356,7 +357,7 @@ ${message}
   `;
 
   try {
-    console.log('📧 Enviando notificación de contacto al admin:', adminEmail);
+    console.log(`📧 Enviando notificación de contacto al buzón único ${MAILBOX_TO} (admin configurado: ${adminEmail})`);
     const result = await sendEmail({
       to: adminEmail,
       subject,
@@ -365,7 +366,7 @@ ${message}
     });
 
     if (result.simulated) {
-      console.log(`[MAILER] ⚠️ Contacto recibido sin envio de email. Admin objetivo: ${adminEmail}`);
+      console.log(`[MAILER] ⚠️ Contacto recibido sin envio de email. Buzón objetivo: ${MAILBOX_TO}`);
       return result;
     }
 

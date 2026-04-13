@@ -32,28 +32,37 @@ const contactController = {
         message
       });
 
-      sendContactNotificationToAdmin({
-        name,
-        email,
-        topic,
-        message,
-        createdAt: newContact.created_at
-      })
-        .then(() => {
-          console.log('Notificación de contacto enviada en segundo plano');
-        })
-        .catch((mailError) => {
-          console.error('Error enviando notificación de contacto en segundo plano:', mailError.message);
-        });
+      let emailNotification = {
+        sent: false,
+        message: 'No se pudo confirmar el envío de la notificación por email.'
+      };
+
+      try {
+        const result = await Promise.race([
+          sendContactNotificationToAdmin({
+            name,
+            email,
+            topic,
+            message,
+            createdAt: newContact.created_at
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Email notification timeout')), 12000))
+        ]);
+
+        emailNotification = {
+          sent: true,
+          message: 'Notificación enviada por email.',
+          messageId: result && result.messageId ? result.messageId : null
+        };
+      } catch (mailError) {
+        console.error('Error enviando notificación de contacto:', mailError.message);
+      }
 
       res.status(201).json({ 
         success: true, 
         message: 'Gracias por tu mensaje. Te contactaremos pronto.',
         contact: newContact,
-        emailNotification: {
-          queued: true,
-          message: 'Notificación por email en proceso.'
-        }
+        emailNotification
       });
     } catch (error) {
       console.error('Error al crear contacto:', error);

@@ -46,7 +46,7 @@ const contactController = {
             message,
             createdAt: newContact.created_at
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Email notification timeout')), 12000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Email notification timeout')), 30000))
         ]);
 
         emailNotification = {

@@ -32,18 +32,28 @@ const contactController = {
         message
       });
 
-      await sendContactNotificationToAdmin({
-        name,
-        email,
-        topic,
-        message,
-        createdAt: newContact.created_at
-      });
+      let emailNotification = { sent: true };
+      try {
+        await sendContactNotificationToAdmin({
+          name,
+          email,
+          topic,
+          message,
+          createdAt: newContact.created_at
+        });
+      } catch (mailError) {
+        console.error('Error enviando notificación de contacto (no bloqueante):', mailError.message);
+        emailNotification = {
+          sent: false,
+          warning: 'El mensaje fue guardado, pero no se pudo enviar la notificación por email.'
+        };
+      }
 
       res.status(201).json({ 
         success: true, 
         message: 'Gracias por tu mensaje. Te contactaremos pronto.',
-        contact: newContact
+        contact: newContact,
+        emailNotification
       });
     } catch (error) {
       console.error('Error al crear contacto:', error);

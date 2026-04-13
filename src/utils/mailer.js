@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 function getSmtpTransporter(port, secure) {
   const host = process.env.SMTP_HOST || 'mail.smtp2go.com';
@@ -25,6 +26,7 @@ function getSmtpTransporter(port, secure) {
 
 async function sendEmail({ to, subject, text, html }) {
   const from = process.env.FROM_EMAIL || 'info@figueroatrainer.com';
+  const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
   const preferredPort = parseInt(process.env.SMTP_PORT || '587', 10);
   const attemptedPorts = [preferredPort, 587, 2525, 465]
     .filter((p, i, arr) => Number.isFinite(p) && arr.indexOf(p) === i);
@@ -35,6 +37,57 @@ async function sendEmail({ to, subject, text, html }) {
   if (!user || !pass) {
     console.warn('⚠️ Configuracion SMTP incompleta. Se omite el envio de email.');
     return { simulated: true, reason: 'missing_smtp_credentials' };
+  }
+
+  if (smtp2goApiKey && /^api-[A-Za-z0-9]{32}$/.test(smtp2goApiKey)) {
+    try {
+      const apiResult = await new Promise((resolve, reject) => {
+        const payload = JSON.stringify({
+          api_key: smtp2goApiKey,
+          to: Array.isArray(to) ? to : String(to).split(',').map((t) => t.trim()).filter(Boolean),
+          sender: from,
+          subject,
+          text_body: text,
+          html_body: html,
+        });
+
+        const req = https.request('https://api.smtp2go.com/v3/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+            'X-Smtp2go-Api-Key': smtp2goApiKey,
+          },
+          timeout: 10000,
+        }, (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve({
+                success: true,
+                messageId: null,
+                accepted: Array.isArray(to) ? to : String(to).split(',').map((t) => t.trim()).filter(Boolean),
+                response: data,
+              });
+              return;
+            }
+            reject(new Error(`SMTP2GO API ${res.statusCode}: ${data}`));
+          });
+        });
+
+        req.on('timeout', () => {
+          req.destroy(new Error('SMTP2GO API timeout'));
+        });
+        req.on('error', (err) => reject(err));
+        req.write(payload);
+        req.end();
+      });
+
+      return apiResult;
+    } catch (apiError) {
+      console.warn(`⚠️ Fallo SMTP2GO API, se intenta SMTP: ${apiError.message}`);
+    }
   }
 
   let lastError = null;

@@ -1,9 +1,7 @@
 const nodemailer = require('nodemailer');
 
-function getSmtpTransporter() {
+function getSmtpTransporter(port, secure) {
   const host = process.env.SMTP_HOST || 'mail.smtp2go.com';
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const secure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
@@ -15,6 +13,9 @@ function getSmtpTransporter() {
     host,
     port,
     secure,
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 12000,
     auth: {
       user,
       pass,
@@ -23,28 +24,46 @@ function getSmtpTransporter() {
 }
 
 async function sendEmail({ to, subject, text, html }) {
-  const transporter = getSmtpTransporter();
   const from = process.env.FROM_EMAIL || 'info@figueroatrainer.com';
+  const preferredPort = parseInt(process.env.SMTP_PORT || '587', 10);
+  const attemptedPorts = [preferredPort, 587, 2525, 465]
+    .filter((p, i, arr) => Number.isFinite(p) && arr.indexOf(p) === i);
 
-  if (!transporter) {
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!user || !pass) {
     console.warn('⚠️ Configuracion SMTP incompleta. Se omite el envio de email.');
     return { simulated: true, reason: 'missing_smtp_credentials' };
   }
 
-  const info = await transporter.sendMail({
-    from,
-    to,
-    subject,
-    text,
-    html,
-  });
+  let lastError = null;
 
-  return {
-    success: true,
-    messageId: info.messageId,
-    accepted: info.accepted,
-    response: info.response,
-  };
+  for (const port of attemptedPorts) {
+    const secure = port === 465;
+    const transporter = getSmtpTransporter(port, secure);
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        text,
+        html,
+      });
+
+      return {
+        success: true,
+        messageId: info.messageId,
+        accepted: info.accepted,
+        response: info.response,
+      };
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Falla SMTP en puerto ${port}: ${error.message}`);
+    }
+  }
+
+  throw lastError || new Error('No se pudo enviar email por SMTP');
 }
 
 async function sendPasswordResetCode(toEmail, code) {

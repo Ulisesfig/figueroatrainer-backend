@@ -18,6 +18,9 @@ router.post('/my-exercises', requireAuth, exerciseWeightsController.upsertExerci
 // Actualizar peso de un ejercicio
 router.patch('/my-exercises/:exerciseId', requireAuth, exerciseWeightsController.updateWeight);
 
+// Eliminar ultimo peso registrado de un ejercicio
+router.post('/my-exercises/:exerciseId/remove-last', requireAuth, exerciseWeightsController.removeLastWeight);
+
 // Eliminar ejercicio
 router.delete('/my-exercises/:exerciseId', requireAuth, exerciseWeightsController.deleteExercise);
 

@@ -295,6 +295,47 @@ const exerciseController = {
         error: error.message
       });
     }
+  },
+
+  // Eliminar el ultimo peso registrado de un ejercicio
+  removeLastWeight: async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { exerciseId } = req.params;
+
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'No autenticado' });
+      }
+
+      if (!exerciseId) {
+        return res.status(400).json({
+          success: false,
+          message: 'exerciseId es requerido'
+        });
+      }
+
+      const exercise = await UserExercise.removeLastWeight(userId, exerciseId);
+
+      if (!exercise) {
+        return res.status(404).json({
+          success: false,
+          message: 'Ejercicio no encontrado'
+        });
+      }
+
+      res.json({
+        success: true,
+        exercise,
+        message: 'Ultimo peso eliminado'
+      });
+    } catch (error) {
+      console.error('Error al eliminar ultimo peso:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al eliminar ultimo peso',
+        error: error.message
+      });
+    }
   }
 };
 

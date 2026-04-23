@@ -235,6 +235,116 @@ const UserExercise = {
     }
   },
 
+  // Eliminar el ultimo peso registrado de un ejercicio y recalcular estado actual
+  removeLastWeight: async (userId, exerciseId) => {
+    const normalizedExerciseId = String(exerciseId);
+
+    try {
+      await query('BEGIN');
+
+      const currentRes = await query(
+        `
+          SELECT id, exercise_name
+          FROM user_exercises
+          WHERE user_id = $1 AND exercise_id = $2
+          LIMIT 1
+        `,
+        [userId, normalizedExerciseId]
+      );
+
+      if (!currentRes.rows[0]) {
+        await query('ROLLBACK');
+        return null;
+      }
+
+      await query(
+        `
+          DELETE FROM user_exercise_history
+          WHERE id = (
+            SELECT id
+            FROM user_exercise_history
+            WHERE user_id = $1 AND exercise_id = $2
+            ORDER BY recorded_at DESC, id DESC
+            LIMIT 1
+          )
+        `,
+        [userId, normalizedExerciseId]
+      );
+
+      const historyRes = await query(
+        `
+          SELECT weight, reps, recorded_at
+          FROM user_exercise_history
+          WHERE user_id = $1 AND exercise_id = $2
+          ORDER BY recorded_at DESC, id DESC
+          LIMIT 2
+        `,
+        [userId, normalizedExerciseId]
+      );
+
+      const latest = historyRes.rows[0] || null;
+      const previous = historyRes.rows[1] || null;
+
+      const nextWeight = latest ? Number(latest.weight) : 0;
+      const nextReps = latest && latest.reps !== undefined ? latest.reps : null;
+
+      const updatedRes = await query(
+        `
+          UPDATE user_exercises
+          SET weight = $3,
+              reps = $4,
+              previous_weight = $5,
+              previous_reps = $6,
+              weight_updated_at = COALESCE($7, NOW()),
+              reps_updated_at = NOW(),
+              updated_at = NOW()
+          WHERE user_id = $1 AND exercise_id = $2
+          RETURNING *
+        `,
+        [
+          userId,
+          normalizedExerciseId,
+          nextWeight,
+          nextReps,
+          previous ? Number(previous.weight) : null,
+          previous ? previous.reps : null,
+          latest ? latest.recorded_at : null,
+        ]
+      );
+
+      await query('COMMIT');
+      return updatedRes.rows[0] || null;
+    } catch (error) {
+      try {
+        await query('ROLLBACK');
+      } catch (_rollbackError) {
+        // noop
+      }
+
+      // Fallback para entornos sin tabla de historial
+      try {
+        const fallbackRes = await query(
+          `
+            UPDATE user_exercises
+            SET weight = COALESCE(previous_weight, weight),
+                reps = COALESCE(previous_reps, reps),
+                previous_weight = NULL,
+                previous_reps = NULL,
+                weight_updated_at = NOW(),
+                reps_updated_at = NOW(),
+                updated_at = NOW()
+            WHERE user_id = $1 AND exercise_id = $2
+            RETURNING *
+          `,
+          [userId, normalizedExerciseId]
+        );
+        return fallbackRes.rows[0] || null;
+      } catch (_fallbackError) {
+        throw error;
+      }
+    }
+  },
+
   // Historial de un ejercicio para un usuario
   getHistory: async (userId, exerciseId, limit = 30) => {
     const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(200, Number(limit))) : 30;

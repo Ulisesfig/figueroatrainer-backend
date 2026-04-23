@@ -171,13 +171,47 @@ const UserExercise = {
 
   // Eliminar ejercicio
   delete: async (userId, exerciseId) => {
-    const text = `
-      DELETE FROM user_exercises
-      WHERE user_id = $1 AND exercise_id = $2
-      RETURNING id
-    `;
-    const res = await query(text, [userId, exerciseId]);
-    return res.rows[0];
+    try {
+      await query('BEGIN');
+
+      // Borrar historial para que, si se vuelve a agregar, arranque limpio en 0.
+      await query(
+        `
+          DELETE FROM user_exercise_history
+          WHERE user_id = $1 AND exercise_id = $2
+        `,
+        [userId, exerciseId]
+      );
+
+      const res = await query(
+        `
+          DELETE FROM user_exercises
+          WHERE user_id = $1 AND exercise_id = $2
+          RETURNING id
+        `,
+        [userId, exerciseId]
+      );
+
+      await query('COMMIT');
+      return res.rows[0];
+    } catch (error) {
+      try {
+        await query('ROLLBACK');
+      } catch (_rollbackError) {
+        // noop
+      }
+
+      // Fallback: si no existe tabla de historial, borrar al menos el ejercicio.
+      const fallback = await query(
+        `
+          DELETE FROM user_exercises
+          WHERE user_id = $1 AND exercise_id = $2
+          RETURNING id
+        `,
+        [userId, exerciseId]
+      );
+      return fallback.rows[0];
+    }
   },
 
   // Actualizar peso de un ejercicio (guarda el peso anterior)
